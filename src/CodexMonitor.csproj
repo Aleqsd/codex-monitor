@@ -1,0 +1,17 @@
+<Project Sdk="Dalamud.NET.Sdk/15.0.0">
+  <PropertyGroup>
+    <Version>0.1.0.0</Version>
+    <AssemblyName>CodexMonitor</AssemblyName>
+    <Author>Aleqsd</Author>
+    <Name>Codex Monitor</Name>
+    <Punchline>Vos tâches Codex, directement dans FF14.</Punchline>
+    <Description>Affiche les tâches Codex du PC, leurs états et les demandes d'intervention. Nécessite le relais local Codex Monitor.</Description>
+    <Tags>codex;monitor;utility</Tags>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Use_Dalamud_FFXIVClientStructs>false</Use_Dalamud_FFXIVClientStructs>
+    <Use_Dalamud_Lumina>false</Use_Dalamud_Lumina>
+    <Use_Dalamud_Lumina_Excel>false</Use_Dalamud_Lumina_Excel>
+    <Use_Dalamud_MSObjectPool>false</Use_Dalamud_MSObjectPool>
+    <Use_Dalamud_Serilog>false</Use_Dalamud_Serilog>
+  </PropertyGroup>
+</Project>

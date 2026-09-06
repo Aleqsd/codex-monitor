@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+plugin/
+bridge/runtime/
+.local/
+artifacts/
+.vs/
+*.user
+*.suo
+*.zip
+*.log
