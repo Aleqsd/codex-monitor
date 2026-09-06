@@ -5,7 +5,9 @@
     <Author>Aleqsd</Author>
     <Name>Codex Monitor</Name>
     <Punchline>Vos tâches Codex, directement dans FF14.</Punchline>
-    <Description>Affiche les tâches Codex du PC, leurs états et les demandes d'intervention. Nécessite le relais local Codex Monitor.</Description>
+    <Description>Affiche les tâches Codex du PC, leurs états et les demandes d'intervention. Nécessite le relais local Codex Monitor. Icône et sons intégrés créés avec l’aide de Codex ; sons désactivables ou remplaçables.</Description>
+    <RepoUrl>https://github.com/Aleqsd/codex-monitor</RepoUrl>
+    <IconUrl>https://raw.githubusercontent.com/Aleqsd/dalamud-plugins/main/icons/CodexMonitor.png</IconUrl>
     <Tags>codex;monitor;utility</Tags>
     <ImplicitUsings>enable</ImplicitUsings>
     <Use_Dalamud_FFXIVClientStructs>false</Use_Dalamud_FFXIVClientStructs>

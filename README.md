@@ -48,4 +48,10 @@ Fin d’un tour, question posée ou résumé au retour du combat. Voici les thè
 
 *Ces aperçus proviennent des composants ImGui réels, hors jeu, avec des données fictives.*
 
+## Développement
+
+J’ai développé ce plugin avec l’aide de Codex, qui a écrit une grande partie du code. Je l’ai testé en jeu et fait évoluer avec mes idées et mes retours.
+
+L’icône et les sons intégrés ont aussi été créés avec l’aide de Codex. Les sons sont synthétisés par le plugin ; tu peux les désactiver ou choisir tes propres fichiers.
+
 [Compilation et fonctionnement](docs/DEVELOPMENT.md) · [Validation](docs/VALIDATION.md) · [Notifications](docs/NOTIFICATIONS.md)
