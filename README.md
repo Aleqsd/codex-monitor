@@ -34,4 +34,18 @@ Dans **Notifications → Design**, personnaliser le fond, la transparence, les c
 
 Le relais utilise un protocole interne de Codex qui peut évoluer. Le plugin ne lance ni n’approuve de tâche.
 
+## Mini HUD
+
+Six formats, du simple texte au panneau compact, avec les tâches actives, les questions et le quota restant.
+
+![Les six formats de mini HUD : Fil, Capsule, Balise, Liseré, Totem et Panneau fin](docs/images/mini-huds.png)
+
+## Notifications
+
+Fin d’un tour, question posée ou résumé au retour du combat. Voici les thèmes LMeter, Obsidienne et Nuit :
+
+![Aperçus de notifications : tour terminé, question posée et résumé pendant votre absence](docs/images/notifications.png)
+
+*Ces aperçus proviennent des composants ImGui réels, hors jeu, avec des données fictives.*
+
 [Compilation et fonctionnement](docs/DEVELOPMENT.md) · [Validation](docs/VALIDATION.md) · [Notifications](docs/NOTIFICATIONS.md)

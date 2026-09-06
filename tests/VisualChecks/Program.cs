@@ -27,6 +27,7 @@ internal static unsafe partial class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--readme-previews")) { ReadmePreviews(args.Last()); return; }
         if (args.Contains("--revision-preview")) { RevisionPreview(args.Last()); return; }
         if (args.Contains("--revision-smoke")) { RevisionSmoke(); return; }
         if (args.Contains("--skin-smoke")) { SkinChecks.Run(); RevisionSmoke(); return; }

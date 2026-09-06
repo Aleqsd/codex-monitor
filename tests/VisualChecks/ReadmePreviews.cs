@@ -1,0 +1,63 @@
+using System.Numerics;
+using CodexMonitor;
+using Dalamud.Bindings.ImGui;
+
+internal static unsafe partial class Program
+{
+    // Documentation only: compact galleries drawn by the actual plugin components.
+    private static void ReadmePreviews(string output)
+    {
+        Directory.CreateDirectory(output);
+        foreach (var notifications in new[] { false, true })
+        {
+            Initialize(notifications ? 680 : 800, notifications ? 650 : 500, 1);
+            for (var frame = 0; frame < 3; frame++)
+            {
+                ImGui.NewFrame(); ObsidianTheme.Push(ObsidianTheme.Chrome);
+                ImGui.SetNextWindowPos(Vector2.Zero); ImGui.SetNextWindowSize(new(screenWidth, screenHeight));
+                ImGui.Begin("Documentation", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoSavedSettings);
+                var draw = ImGui.GetWindowDrawList();
+                draw.AddText(new(24, 20), ObsidianTheme.U(ObsidianTheme.Text), notifications ? "Notifications" : "Six formats de mini HUD");
+                draw.AddText(new(24, 45), ObsidianTheme.U(ObsidianTheme.Muted), "Rendu ImGui hors jeu · Données fictives");
+                if (notifications)
+                {
+                    var rows = new[]
+                    {
+                        (MonitorSkin.LMeter, "idle", "Préparer la prochaine version", "Projet démo"),
+                        (MonitorSkin.Obsidienne, "question", "Comparer les variantes de l’accueil", "Projet démo"),
+                        (MonitorSkin.Nuit, "summary", "2 tours terminés · 1 réponse attendue", "Cliquer pour consulter l’historique"),
+                    };
+                    var y = 86f;
+                    foreach (var (skin, state, title, project) in rows)
+                    {
+                        var appearance = new SurfaceAppearance(); appearance.ApplyPreset(skin, AppearanceTarget.Notification);
+                        draw.AddText(new(24, y), ObsidianTheme.U(ObsidianTheme.Muted), skin.ToString());
+                        var size = NotificationOverlay.LogicalSize(appearance) * 1.25f;
+                        NotificationOverlay.DrawFace(draw, new(24, y + 25), size, 1.25f,
+                            new NotificationItem(-1, new("example", title, project, "", state), 1.5f, 7), appearance);
+                        y += size.Y + 54;
+                    }
+                }
+                else
+                {
+                    var snapshot = new MonitorSnapshot(true, DateTimeOffset.UtcNow,
+                        [new("demo1", "Préparer une version", "Démo", "", "active", [new string('a', 32)]),
+                         new("demo2", "Vérifier un écran", "Démo", "", "active")], null, true,
+                        new AccountUsage(DateTimeOffset.UtcNow, [new(48, 10080, null)]));
+                    foreach (var style in Enum.GetValues<MiniHudStyle>())
+                    {
+                        var index = (int)style; var p = new Vector2(24 + (index % 2) * 390, 90 + (index / 2) * 120);
+                        draw.AddText(p, ObsidianTheme.U(ObsidianTheme.Muted), MiniHudOptions.Names[index]);
+                        var appearance = new HudAppearance(); appearance.ApplyPreset(MonitorSkin.Obsidienne, AppearanceTarget.Hud);
+                        MiniHud.DrawFace(p + new Vector2(0, 28), MiniHudOptions.Size(style, true, appearance) * 1.25f,
+                            snapshot, false, false, 1, style, true, appearance: appearance);
+                    }
+                }
+                ImGui.End(); ObsidianTheme.Pop(); ImGui.Render();
+            }
+            Render(Path.Combine(output, notifications ? "notifications.ppm" : "mini-huds.ppm"));
+            FinishRevisionView();
+        }
+        Console.WriteLine("Rendered two compact README galleries from the real notification and HUD components.");
+    }
+}
