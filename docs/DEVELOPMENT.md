@@ -12,6 +12,12 @@ Le contrôle de connexion réel nécessite un relais déjà actif sur le port 43
 
 [Contrôles visuels hors jeu](../tests/VisualChecks/README.md).
 
+## Charger une compilation locale
+
+Désactiver la copie installée de Codex Monitor avant un essai local. Dans `/xlsettings`, ajouter le chemin de `plugin/CodexMonitor.dll` à **Dev Plugin Locations**, puis activer le plugin dans `/xlplugins`. Garder les deux fichiers JSON près de la DLL, la configuration existante et une seule copie chargée.
+
+Pour revenir à l’installation normale, désactiver cette copie de développement et retirer uniquement son entrée, puis installer depuis le [dépôt personnalisé](../README.md#installation). Le [relais](../bridge/README.md) reste dans son dossier durable séparé.
+
 ## Architecture
 
 Le relais Node observe les tâches locales et expose seulement leurs métadonnées utiles via HTTP loopback. Le client C# actualise son état en arrière-plan toutes les deux secondes. Le dessin ImGui ne fait aucun accès réseau. Les états inconnus, déconnectés ou périmés ne deviennent jamais une réussite.
@@ -37,3 +43,5 @@ Dalamud, son SDK et ses bindings sont des dépendances externes requises pour co
 ## Diffusion
 
 Le dépôt ne contient aucun workflow GitHub Actions. Les releases sont préparées localement : tests pertinents, DLL et manifeste de même version, archive sans `runtime`, logs, configuration utilisateur, SDK ou cache. Les notes restent séparées du diagnostic local d’une installation.
+
+Le [catalogue Dalamud d’Aleqsd](https://github.com/Aleqsd/dalamud-plugins) est publié séparément par sa tâche de maintenance. Lui transmettre pour chaque nouvelle release le tag, le commit exact, le nom d’archive, les SHA256 de l’archive et de la DLL, la version et un court changelog. Une release GitHub ne met pas automatiquement le catalogue à jour. Les archives existantes restent immuables.

@@ -1,5 +1,7 @@
 # Codex Monitor
 
+<img src="https://raw.githubusercontent.com/Aleqsd/dalamud-plugins/main/icons/CodexMonitor.png" width="64" height="64" alt="Icône Codex Monitor">
+
 Vos tâches Codex dans FF14 : état du travail, questions en attente, notifications et quota restant.
 
 ![Fenêtre de Codex Monitor](docs/images/tasks.png)
@@ -7,13 +9,20 @@ Vos tâches Codex dans FF14 : état du travail, questions en attente, notificati
 
 ## Installation
 
-Version expérimentale pour **Windows et Dalamud 15**. Le relais nécessite **Node.js 22.22.2** et Codex ouvert. Pour le quota, le CLI Codex doit aussi être installé et connecté.
+Version expérimentale pour **Windows et Dalamud 15**, disponible dans le dépôt personnalisé d’Aleqsd.
 
-1. Télécharger et extraire l’archive de la [dernière prérelease](https://github.com/Aleqsd/codex-monitor/releases).
-2. Lancer `bridge/Start-Bridge.ps1` avec PowerShell.
-3. Ajouter le chemin de `plugin/CodexMonitor.dll` aux **Dev Plugin Locations** dans `/xlsettings`, puis activer **Codex Monitor** dans `/xlplugins`.
+1. Dans les paramètres Dalamud (`/xlsettings`), ouvrir **Dépôts de plugins personnalisés**.
+2. Ajouter cette URL, activer la ligne et enregistrer :
 
-Pour une mise à jour, désactiver le plugin avant de changer son emplacement. Garder un seul relais et une seule DLL chargée.
+```text
+https://raw.githubusercontent.com/Aleqsd/dalamud-plugins/main/repo.json
+```
+
+3. Dans `/xlplugins`, chercher **Codex Monitor** et cliquer sur **Installer**. Les versions ajoutées à ce catalogue se mettent ensuite à jour depuis Dalamud.
+
+Si tu utilisais une DLL de développement, désactive cette copie et retire uniquement son entrée de **Dev Plugin Locations** avant l’installation. Conserve tes fichiers de configuration et une seule copie chargée.
+
+Le [relais local se prépare et se lance séparément](bridge/README.md#première-installation), dans un dossier durable hors des dossiers de plugins Dalamud. Il nécessite Node.js 22.22.2 et Codex ouvert ; le quota demande aussi le CLI Codex connecté. Si ton relais fonctionne déjà, garde-le lancé. Une mise à jour Dalamud ne met pas le relais à jour.
 
 ## Utilisation
 

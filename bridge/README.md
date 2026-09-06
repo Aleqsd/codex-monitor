@@ -2,15 +2,23 @@
 
 Le relais suit les tâches de Codex sur ce PC et fournit leurs états au plugin FF14.
 
-## Démarrer
+## Première installation
 
 Prérequis : Windows, Node.js 22.22.2 et Codex ouvert. Aucun paquet npm propre au relais. Le quota demande aussi un CLI Codex installé et connecté.
+
+Télécharger le ZIP complet de la [dernière release Codex Monitor](https://github.com/Aleqsd/codex-monitor/releases), puis l’extraire dans un dossier durable de ton choix, hors des dossiers de plugins gérés par Dalamud. Le sous-dossier `bridge/` contient le relais ; il conserve ses fichiers `runtime/` localement.
+
+Ouvrir PowerShell dans ce sous-dossier et lancer :
 
 ```powershell
 .\Start-Bridge.ps1
 ```
 
 Il écoute sur `127.0.0.1:43187`. `Stop-Bridge.ps1` l’arrête et `Show-Status.ps1` montre son état. Ne lancer qu’une instance. `Start-Bridge.ps1 -CodexExe 'C:\chemin\codex.exe'` permet une installation du CLI différente du PATH.
+
+## Mises à jour
+
+Si le relais fonctionne déjà, il peut rester lancé. Dalamud installe et met à jour uniquement le plugin ; le relais se met à jour séparément lorsqu’une release le demande. Dans ce cas, arrêter l’ancienne instance avec son `Stop-Bridge.ps1`, préparer le nouveau dossier et lancer son `Start-Bridge.ps1`. Garder une seule instance et ne pas déplacer un dossier dont le relais tourne encore.
 
 Le script optionnel `Activer-Quota.ps1` peut remplacer un ancien relais reconnu dans une livraison voisine. Il refuse de modifier un processus inconnu. Sa syntaxe est vérifiée ; sa bascule automatique reste non validée en conditions réelles. L’arrêt et le démarrage séparés sont disponibles.
 
