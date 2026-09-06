@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace CodexMonitor;
 
-public sealed record MonitoredThread(string Id, string Title, string Project, string Model, string State, string[]? PendingQuestionIds = null)
+public sealed record MonitoredThread(string Id, string Title, string Project, string Model, string State, string[]? PendingQuestionIds = null, string[]? HiddenQuestionIds = null)
 {
     public string[] QuestionIds => PendingQuestionIds ?? [];
     public bool HasQuestion => IsObserved && QuestionIds.Length > 0;

@@ -14,6 +14,7 @@
     <Compile Include="../../src/Configuration.cs" Link="Configuration.cs" />
     <Compile Include="../../src/PresentationOptions.cs" Link="PresentationOptions.cs" />
     <Compile Include="../../src/MonitorState.cs" Link="MonitorState.cs" />
+    <Compile Include="../../src/QuestionDismissals.cs" Link="QuestionDismissals.cs" />
     <Compile Include="../../src/AccountUsage.cs" Link="AccountUsage.cs" />
     <Compile Include="../../src/HudMotion.cs" Link="HudMotion.cs" />
     <Compile Include="../../src/HudAppearance.cs" Link="HudAppearance.cs" />

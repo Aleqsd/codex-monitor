@@ -93,6 +93,10 @@ internal sealed class MainWindow : Window
             .ThenBy(task => task.Title, StringComparer.CurrentCultureIgnoreCase).ToArray();
         if (ImGui.BeginChild("task-list", new Vector2(0, Math.Max(80 * s, ImGui.GetContentRegionAvail().Y - 29 * s)), false))
         {
+            var appearance = plugin.Config.WindowAppearance!;
+            var p = ImGui.GetCursorScreenPos(); var extent = ImGui.GetContentRegionAvail(); var draw = ImGui.GetWindowDrawList();
+            draw.AddRectFilled(p, p + extent, ObsidianTheme.U(appearance.Color));
+            if (appearance.Border && appearance.Opacity > 0) draw.AddRect(p, p + extent, ObsidianTheme.U(new Vector4(0.23f, 0.23f, 0.23f, appearance.Opacity)));
             if (tasks.Length == 0) { ImGui.Spacing(); ImGui.TextDisabled("Aucune tâche dans cette vue."); }
             foreach (var task in tasks) TaskRow(task);
         }
@@ -126,16 +130,33 @@ internal sealed class MainWindow : Window
     private void CompactTaskRow(MonitoredThread task)
     {
         var appearance = plugin.Config.WindowAppearance!;
+        using var font = UiFonts.Push(appearance.Text);
         var s = ObsidianTheme.UiScale; var p = ImGui.GetCursorScreenPos(); var width = ImGui.GetContentRegionAvail().X;
-        var inset = Vector2.Abs(appearance.Text.Offset) * s;
+        var inset = (Vector2.Abs(appearance.Text.Offset) + appearance.Padding) * s;
         var rowHeight = ImGui.GetFontSize() * 2 + (10 + appearance.RowSpacing) * s + inset.Y * 2;
-        ImGui.PushID(task.Id); ImGui.InvisibleButton("row", new Vector2(width, rowHeight));
+        ImGui.PushID(task.Id);
+        var hidden = task.HiddenQuestionIds is { Length: > 0 };
+        var clickable = task.HasQuestion || hidden;
+        if (ImGui.InvisibleButton("row", new Vector2(width, rowHeight)) && clickable) ImGui.OpenPopup("question-actions");
         DrawTaskFace(ImGui.GetWindowDrawList(), p, width, rowHeight, task, appearance, ImGui.IsItemHovered());
         if (ImGui.IsItemHovered())
         {
             ImGui.BeginTooltip(); ImGui.PushTextWrapPos(470 * s); ImGui.TextUnformatted(task.Title); ImGui.TextDisabled(task.Project);
             if (task.HasQuestion) ImGui.TextColored(ObsidianTheme.Amber, "Question posée · Répondre dans Codex");
+            if (hidden) ImGui.TextDisabled("Question masquée dans FF14");
+            if (clickable) ImGui.TextDisabled("Cliquer pour gérer le signal de question");
             ImGui.PopTextWrapPos(); ImGui.EndTooltip();
+        }
+        if (ImGui.BeginPopup("question-actions"))
+        {
+            ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + 310 * s);
+            ImGui.TextWrapped(task.Title);
+            ImGui.TextWrapped("Ce choix concerne seulement FF14. Il ne répond pas dans Codex.");
+            ImGui.Separator();
+            if (task.HasQuestion && ImGui.Selectable(task.QuestionIds.Length == 1 ? "Masquer cette question" : "Masquer ces questions")) plugin.DismissQuestions(task);
+            if (hidden && ImGui.Selectable("Réafficher les questions masquées")) plugin.RestoreQuestions(task.Id);
+            ImGui.TextWrapped("Les nouvelles questions resteront signalées.");
+            ImGui.PopTextWrapPos(); ImGui.EndPopup();
         }
         ImGui.PopID();
     }
@@ -143,7 +164,7 @@ internal sealed class MainWindow : Window
     internal static void DrawTaskFace(ImDrawListPtr draw, Vector2 p, float width, float rowHeight, MonitoredThread task, SurfaceAppearance appearance, bool hovered = false)
     {
         using var font = UiFonts.Push(appearance.Text); using var palette = ObsidianTheme.Palette(appearance);
-        var s = ObsidianTheme.UiScale; var inset = Vector2.Abs(appearance.Text.Offset) * s;
+        var s = ObsidianTheme.UiScale; var inset = (Vector2.Abs(appearance.Text.Offset) + appearance.Padding) * s;
         var color = ObsidianTheme.State(task.State);
         draw.AddRectFilled(p, p + new Vector2(width, rowHeight - 2 * s), ObsidianTheme.U(new Vector4(color.X, color.Y, color.Z, (hovered ? 0.22f : 0.09f) * appearance.Opacity)));
         draw.AddRectFilled(p, p + new Vector2(3 * s, rowHeight - 2 * s), ObsidianTheme.U(color));

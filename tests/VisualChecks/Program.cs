@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using CodexMonitor;
 using Dalamud.Bindings.ImGui;
 
-internal static unsafe class Program
+internal static unsafe partial class Program
 {
     private sealed record Texture(int Width, int Height, byte[] Pixels);
     private static readonly Dictionary<ImTextureID, Texture> Textures = new();
@@ -27,32 +27,13 @@ internal static unsafe class Program
 
     private static void Main(string[] args)
     {
-        if (args.Contains("--skin-smoke"))
-        {
-            SkinChecks.Run();
-            Initialize(800, 900, 1); skinOnly = true; skinScope = AppearanceTarget.Notification;
-            plugin.Config.WindowAppearance!.ApplyPreset(MonitorSkin.LMeter, AppearanceTarget.Window);
-            plugin.Config.ToastAppearance!.ApplyPreset(MonitorSkin.LMeter, AppearanceTarget.Notification);
-            for (var i=0; i<3; i++) Frame();
-            Click(106, 157);
-            if (plugin.Config.ToastAppearance.Skin != MonitorSkin.Obsidienne || plugin.Config.WindowAppearance.Skin != MonitorSkin.LMeter) throw new Exception("Theme affected another component.");
-            Click(26, 157);
-            if (plugin.Config.ToastAppearance.Skin != MonitorSkin.LMeter) throw new Exception("LMeter preset did not persist.");
-            var foreground = plugin.Config.ToastAppearance.Text.Color;
-            Click(20, 391);
-            if (plugin.Config.ToastAppearance.Opacity > .05f || plugin.Config.ToastAppearance.Text.Color != foreground) throw new Exception("Opacity control changed foreground.");
-            Click(150, 512); Click(60, 543);
-            if (plugin.Config.ToastAppearance.Text.Font != MonitorFont.Dalamud) throw new Exception("Fallback font was not selected.");
-            Click(760, 598);
-            if (plugin.Config.ToastAppearance.Text.Size < 23) throw new Exception("Text size was not saved.");
-            if (plugin.SaveCount < 5) throw new Exception("Controls did not save.");
-            ImGui.DestroyContext(); Textures.Clear(); plugin.Sounds.Dispose();
-            Console.WriteLine("PASS five native appearance interactions: theme, independent scope, background opacity, font and text size."); return;
-        }
+        if (args.Contains("--revision-preview")) { RevisionPreview(args.Last()); return; }
+        if (args.Contains("--revision-smoke")) { RevisionSmoke(); return; }
+        if (args.Contains("--skin-smoke")) { SkinChecks.Run(); RevisionSmoke(); return; }
         if (args.Contains("--hud-menu"))
         {
             Initialize(800, 700, 1); window.ShowSettings = true; plugin.SetIndicator(IndicatorMode.MiniHud);
-            for (var i=0; i<3; i++) Frame(); Click(120,316); Render("artifacts/hud-menu.ppm"); return;
+            for (var i=0; i<3; i++) Frame(); Click(120,279); Render("artifacts/hud-menu.ppm"); return;
         }
         if (args.Contains("--skin-preview"))
         {
@@ -137,11 +118,11 @@ internal static unsafe class Program
         {
             Initialize(800, 700, 1); window.ShowSettings = true; plugin.SetIndicator(IndicatorMode.MiniHud);
             for (var frame = 0; frame < 3; frame++) Frame();
-            Click(255, 455);
+            Click(255, 418);
             var settingsPanel = (SettingsPanel)typeof(MainWindow).GetField("settings", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(window)!;
             var previewMotion = (HudMotion)typeof(SettingsPanel).GetField("hudMotion", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(settingsPanel)!;
             if (previewMotion.Update(plugin.Snapshot, true, 0).ActivePulse <= 0) throw new Exception("Animation preview button did not animate.");
-            Click(35, 455);
+            Click(35, 418);
             if (plugin.Config.AnimateHudChanges || previewMotion.Update(plugin.Snapshot, false, 0).ActivePulse != 0) throw new Exception("Animation toggle did not disable motion.");
             ImGui.DestroyContext(); Textures.Clear(); plugin.Sounds.Dispose();
             Console.WriteLine("PASS two real HUD animation interactions: preview and disable (off-game)."); return;
@@ -194,10 +175,10 @@ internal static unsafe class Program
             Initialize(800, 700, 1);
             window.ShowSettings = true; plugin.SetIndicator(IndicatorMode.MiniHud);
             for (var frame = 0; frame < 3; frame++) Frame();
-            Click(120, 316);
-            Click(70, 427);
+            Click(120, 279);
+            Click(70, 390);
             if (plugin.Config.HudStyle != MiniHudStyle.Lisere) throw new Exception($"Style selector did not persist: {plugin.Config.HudStyle}");
-            Click(35, 351);
+            Click(35, 314);
             if (plugin.Config.ShowUsage) throw new Exception("Quota toggle did not save.");
             plugin.Config.HudAppearance!.Background = HudBackgroundMode.Visible;
             hudOnly = true; overlayOnly = true;
@@ -219,18 +200,18 @@ internal static unsafe class Program
         {
             Initialize(800, 700, 1);
             for (var frame = 0; frame < 3; frame++) Frame();
-            Click(210, 136);
+            Click(195, 87);
             if (!window.ShowSettings) throw new Exception("Settings tab did not open.");
-            Click(36, 273);
+            Click(26, 236);
             if (plugin.Config.Indicator != IndicatorMode.MiniHud || plugin.SaveCount == 0) throw new Exception("Mini HUD selection was not saved.");
-            Click(128, 273);
+            Click(121, 236);
             if (plugin.Config.Indicator != IndicatorMode.Text) throw new Exception("Text mode did not replace Mini HUD.");
-            Click(260, 273);
+            Click(253, 236);
             if (plugin.Config.Indicator != IndicatorMode.Hidden) throw new Exception("Hidden mode did not replace text mode.");
-            Click(215, 170);
-            Click(36, 273);
+            Click(207, 134);
+            Click(26, 236);
             if (plugin.Config.Sounds.Enabled) throw new Exception("Sound toggle did not disable audio.");
-            Click(125, 136);
+            Click(110, 87);
             if (!window.ShowHistory || window.ShowSettings) throw new Exception("History tab did not open.");
             ImGui.DestroyContext(); Textures.Clear(); plugin.Sounds.Dispose();
             Console.WriteLine("PASS six real ImGui interactions: settings, Mini HUD, text, hidden, mute, history (off-game).");
@@ -318,7 +299,7 @@ internal static unsafe class Program
 
     private static void Frame()
     {
-        ImGui.NewFrame(); using var font = UiFonts.Push(plugin.Config.WindowAppearance!.Text); ObsidianTheme.Push(plugin.Config.WindowAppearance);
+        ImGui.NewFrame(); ObsidianTheme.Push(ObsidianTheme.Chrome);
         if (!overlayOnly)
         {
             ImGui.SetNextWindowPos(Vector2.Zero); ImGui.SetNextWindowSize(new Vector2(screenWidth, screenHeight));

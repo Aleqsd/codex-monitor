@@ -35,7 +35,8 @@ public sealed class NotificationHistory
         {
             var task = snapshot.Threads.FirstOrDefault(task => task.Id == entry.Task.Id);
             if (!snapshot.Connected || !snapshot.QuestionTrackingSupported || task is null || !task.IsObserved) return "État actuel inconnu";
-            return entry.Task.QuestionIds.Intersect(task.QuestionIds).Any() ? "Intervention en cours" : "Question traitée ou dépassée";
+            if (entry.Task.QuestionIds.Intersect(task.QuestionIds).Any()) return "Intervention en cours";
+            return entry.Task.QuestionIds.Intersect(task.HiddenQuestionIds ?? []).Any() ? "Question masquée dans FF14" : "Question traitée ou dépassée";
         }
         lock (gate) if (entries.Any(item => item.Task.Id == entry.Task.Id && item.Id > entry.Id)) return "Ancienne alerte";
         var current = snapshot.Threads.FirstOrDefault(task => task.Id == entry.Task.Id);
@@ -65,6 +66,13 @@ public sealed class NotificationCenter(NotificationHistory history, Notification
     private bool wasQuiet;
     public bool IsQuiet { get; private set; }
     public int DeferredCount => deferred.Count;
+
+    // Restoring a local display choice must not replay an old question or hide other transitions.
+    public void RestoreQuestions(string threadId, string[] restoredIds)
+    {
+        previous = previous with { Threads = previous.Threads.Select(row => row.Id == threadId
+            ? row with { PendingQuestionIds = row.QuestionIds.Concat(restoredIds).Distinct().ToArray() } : row).ToArray() };
+    }
 
     public bool Update(MonitorSnapshot snapshot, bool quiet, bool notifyIdle, bool notifyAttention, float duration, DateTimeOffset now, bool notifyQuestions = true)
     {

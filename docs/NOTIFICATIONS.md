@@ -1,9 +1,11 @@
 # Notifications
 
-Dans **Réglages → Apparence → Notifications**, choisir LMeter, Obsidienne ou Nuit. Fond, opacité, police locale, taille et couleur du texte, contour/ombre, marges et alignement sont propres aux alertes. Les offsets internes déplacent le texte ; les réglages de placement déplacent l’ensemble à l’écran. Un aperçu fidèle et une restauration du thème conservent l’ancre et les autres préférences.
+Dans **Réglages → Notifications → Design** (également accessible par **Apparence → Notifications**), choisir LMeter, Obsidienne ou Nuit. Fond, opacité, police locale, taille et couleur du texte, contour/ombre, marges et alignement sont propres aux alertes. Les offsets internes déplacent le texte ; les réglages de placement déplacent l’ensemble à l’écran. Un aperçu fidèle et une restauration du thème conservent l’ancre et les autres préférences.
 
 
 Surface sombre arrondie, symbole circulaire, titre de tâche et projet, statut coloré et barre de durée. Vert pour un tour terminé, ambre pour une réponse ou approbation, rouge pour une erreur.
+
+Le fond, son opacité de 0 à 100 %, le contour, les coins de 0 à 24 px, l’icône et la barre de durée se règlent indépendamment. Police, couleur et taille du texte restent personnalisables. Le panneau de réglages garde une présentation fixe.
 
 ## Placer les notifications
 
@@ -26,6 +28,8 @@ L’option **Une question pendant que Codex continue** déclenche une notificati
 La tâche garde son état **En cours** et affiche aussi le nombre de questions posées. Elle compte dans les tâches actives et dans celles demandant une intervention. La détection utilise les questions structurées de Codex, sans chercher les points d’interrogation dans les messages ordinaires. Le texte des questions et des réponses n’est pas envoyé au jeu.
 
 Pour les messages asynchrones, le relais suit le dernier tour confirmé et retire le signal après une réponse acceptée via la carte de question Codex, ou lorsqu’un nouveau tour remplace le précédent. Il suit aussi les demandes non bloquantes exposées par le serveur et leur suppression. Une simple lecture, un brouillon ou une réponse libre sans lien explicite avec la question ne prouve pas que celle-ci est résolue. Le bouton local « Passer » n’est pas exposé par ce flux. Seules les questions visibles dans les données chargées par Codex sont observables.
+
+Si une ancienne question reste affichée alors que sa carte est introuvable dans Codex, cliquer sur la tâche puis **Masquer cette question**. Cela retire son signal du HUD, des compteurs et des notifications, sans répondre dans Codex. Le choix reste enregistré après rechargement ; les nouvelles questions et les interventions bloquantes continuent de s’afficher. Pour annuler, retrouver la tâche dans **Tout afficher** puis cliquer sur **Réafficher les questions masquées**. L’historique indique « Question masquée dans FF14 ».
 
 Cette fonction nécessite de lancer le relais livré avec la version 0.4.0. Une première connexion ou une reconnexion ne rejoue pas les anciennes alertes ; les questions encore présentes restent visibles dans les compteurs.
 

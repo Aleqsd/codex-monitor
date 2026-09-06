@@ -7,6 +7,8 @@ Pré requis : Windows, .NET 10.0.400 et les bibliothèques installées de Dalamu
 ```powershell
 $env:DALAMUD_HOME = "$env:APPDATA\XIVLauncher\addon\Hooks\15.0.3.2"
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release -- artifacts/visual
+dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --revision-smoke
+dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --revision-preview artifacts/revision
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --interaction-smoke
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --hud-interaction-smoke
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --hud-animation-smoke
@@ -32,6 +34,8 @@ Les données sont fictives. Ces contrôles ne prouvent ni l’apparence exacte s
 `--hud-animation-smoke` vérifie les boutons d’essai et de désactivation ; `--quiet-render-smoke` fait avancer le vrai rendu avec un combat simulé, une brève sortie et la reprise complète d’une notification verte. `--motion-preview` produit 42 images à 20 images/s illustrant les changements des compteurs et du quota. Aucune fenêtre du bureau ni tâche Codex n’est manipulée par ces essais.
 
 
-`--skin-smoke` couvre les presets, l’indépendance des composants et opacités, le choix de police et sa taille, avec 18 contrôles supplémentaires de migration/normalisation et géométrie. `--skin-preview artifacts/skin` produit 56 vues de la fenêtre, du HUD et des notifications aux échelles 100 %, 150 % et 200 %, avec fond clair, transparence totale, grandes polices et police locale alternative.
+`--revision-smoke` couvre 13 interactions : masquage/restauration d’une question, navigation vers son design, preset, opacité, bordure, coins, icône, barre de durée, police et taille. Il compare aussi les pixels du panneau de connexion avant/après modification des styles fonctionnels et vérifie migration/persistance avec le sérialiseur installé. `--skin-smoke` ajoute 18 contrôles d’apparence et géométrie à ce parcours. `--revision-preview` produit 32 vues aux échelles 100/150/200 %, largeur minimale, formulaire défilé et notifications minimalistes ou transparentes.
+
+`--skin-preview artifacts/skin` produit 56 vues supplémentaires des données, du HUD et des notifications avec fond clair, transparence totale, grandes polices et police locale alternative. Le conteneur et les réglages gardent leur présentation fixe.
 
 Le harnais charge Segoe UI et Consolas depuis Windows. Expressway n’est pas présente dans cet environnement : les vues correspondantes montrent le repli, sans prétendre valider son fichier. Le chargement via l’atlas géré de Dalamud reste à vérifier en jeu.

@@ -44,6 +44,9 @@ public class SurfaceAppearance
     public float Blue { get; set; } = 0.13f;
     public float Opacity { get; set; } = 0.94f;
     public bool Border { get; set; } = true;
+    public float? ToastCornerRadius { get; set; }
+    public bool ToastShowIcon { get; set; } = true;
+    public bool ToastShowTimer { get; set; } = true;
     public float AccentRed { get; set; } = 0.65f;
     public float AccentGreen { get; set; } = 0.83f;
     public float AccentBlue { get; set; } = 0.72f;
@@ -61,6 +64,7 @@ public class SurfaceAppearance
         if (!Enum.IsDefined(Alignment)) Alignment = ContentAlignment.Left;
         Red = Clamp(Red, 0, 1, 0.11f); Green = Clamp(Green, 0, 1, 0.13f); Blue = Clamp(Blue, 0, 1, 0.13f);
         Opacity = Clamp(Opacity, 0, 1, 0.94f);
+        if (ToastCornerRadius.HasValue) ToastCornerRadius = Clamp(ToastCornerRadius.Value, 0, 24, 2);
         AccentRed = Clamp(AccentRed, 0, 1, 0.65f); AccentGreen = Clamp(AccentGreen, 0, 1, 0.83f); AccentBlue = Clamp(AccentBlue, 0, 1, 0.72f);
         PaddingX = Clamp(PaddingX, 0, 24, 0); PaddingY = Clamp(PaddingY, 0, 16, 0);
         RowSpacing = Clamp(RowSpacing, 0, 16, 4);
@@ -70,6 +74,7 @@ public class SurfaceAppearance
     public void ApplyPreset(MonitorSkin skin, AppearanceTarget target)
     {
         Skin = skin; Border = true; Alignment = ContentAlignment.Left; PaddingX = PaddingY = 0; RowSpacing = 4;
+        ToastCornerRadius = null; ToastShowIcon = ToastShowTimer = true;
         Text = new TextAppearance { Size = target == AppearanceTarget.Hud ? 14 : 17 };
         if (skin == MonitorSkin.Obsidienne)
         {

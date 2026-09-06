@@ -18,9 +18,11 @@ Le relais Node observe les tâches locales et expose seulement leurs métadonné
 
 Le quota provient du compte connecté au CLI Codex. Un auxiliaire géré appelle uniquement `account/rateLimits/read`, chaque minute. La période hebdomadaire est privilégiée et la valeur expire après deux minutes. Le compte CLI peut différer de celui de l’application. Une DLL récente ne suffit pas si l’ancien relais ne fournit pas le quota.
 
-`SurfaceAppearance` et `HudAppearance` conservent des préférences séparées pour la fenêtre, le HUD et les notifications. Une ancienne configuration reçoit les valeurs compatibles avec Obsidienne ; seul l’absence de configuration utilise LMeter. Les presets et leur restauration ne modifient pas les ancres, l’historique ou les sons.
+`SurfaceAppearance` et `HudAppearance` conservent des préférences séparées pour la liste des tâches, le HUD et les notifications. Le champ historique `WindowAppearance` concerne uniquement les données : `ObsidianTheme.Chrome` fixe le conteneur, la navigation et les réglages, sans appliquer les anciennes préférences à leur rendu. Une ancienne configuration reçoit les valeurs compatibles avec Obsidienne ; seul l’absence de configuration utilise LMeter. Les presets et leur restauration ne modifient pas les ancres, l’historique ou les sons.
 
 Les couleurs sémantiques restent centralisées dans `ObsidianTheme`, dont le nom historique ne désigne plus le seul thème disponible. L’accent n’est pas une couleur de job. Le fond et les textes ont des opacités indépendantes. Les offsets internes réservent de l’espace pour éviter de couper le texte ; le placement à l’écran reste distinct.
+
+`QuestionDismissals` masque localement des identifiants précis et mémorise ce choix. La projection est mise en cache et partagée par les compteurs, le HUD, les notifications et l’historique. Elle préserve les interventions bloquantes et les nouvelles questions. Une restauration ne rejoue pas la notification. Aucune réponse ou modification de tâche n’est envoyée à Codex.
 
 ## Polices et licences
 

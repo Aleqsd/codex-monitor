@@ -32,6 +32,7 @@ public sealed class Configuration : IPluginConfiguration
     public bool QuietInCombat { get; set; } = true;
     public bool QuietInCutscene { get; set; } = true;
     public List<HistoryEntry> NotificationHistory { get; set; } = [];
+    public List<DismissedQuestions> DismissedQuestions { get; set; } = [];
     public bool ShowMiniHud { get; set; } = true;
     public float MiniHudAnchorX { get; set; } = 0.5f;
     public float MiniHudAnchorY { get; set; } = 0.08f;
@@ -55,6 +56,7 @@ public sealed class Configuration : IPluginConfiguration
 
     public void Normalize()
     {
+        DismissedQuestions = QuestionDismissals.Clean(DismissedQuestions);
         Indicator = IndicatorOptions.Resolve(Indicator, ShowDtr, ShowMiniHud);
         if (!Enum.IsDefined(HudStyle)) HudStyle = MiniHudStyle.Capsule;
         MiniHudScale = NotificationGeometry.FiniteClamp(MiniHudScale, 0.75f, 1.5f, 1);

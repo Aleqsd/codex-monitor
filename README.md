@@ -19,7 +19,9 @@ Pour une mise à jour, désactiver le plugin avant de changer son emplacement. G
 
 `/codex` ouvre les tâches. `/codex config` règle le HUD, les notifications, les sons et l’apparence. `/codex preview` place les notifications.
 
-Le thème LMeter est proposé aux nouvelles installations ; les réglages existants sont conservés. Obsidienne et Nuit restent disponibles. Expressway s’utilise depuis une installation locale, avec repli Dalamud si elle manque.
+Cliquer sur une tâche avec un « ? » permet de masquer sa question dans FF14 ou de la réafficher. Les nouvelles questions restent signalées.
+
+Dans **Notifications → Design**, personnaliser le fond, la transparence, les coins, les icônes et le texte avec un aperçu. LMeter, Obsidienne et Nuit habillent les éléments du plugin ; les réglages gardent une présentation fixe. Expressway est facultative et locale, avec repli Dalamud.
 
 Le relais utilise un protocole interne de Codex qui peut évoluer. Le plugin ne lance ni n’approuve de tâche.
 

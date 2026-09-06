@@ -24,6 +24,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly IDtrBarEntry dtr;
     private readonly object saveGate = new();
     private readonly QuietModeGate quietGate = new();
+    private readonly QuestionDismissals questionDismissals;
     private bool fontsDirty;
     private MonitorSnapshot previous = MonitorSnapshot.Offline("Initialisation");
     internal Configuration Config { get; }
@@ -32,13 +33,14 @@ public sealed class Plugin : IDalamudPlugin
     internal NotificationCenter Center { get; }
     internal MiniHud Hud { get; }
     internal NotificationSounds Sounds { get; } = new();
-    internal MonitorSnapshot Snapshot => client.Current;
+    internal MonitorSnapshot Snapshot => questionDismissals.Apply(client.Current);
 
     public Plugin()
     {
         Config = PluginInterface.GetPluginConfig() as Configuration ?? Configuration.NewInstall();
         Config.Port = Math.Clamp(Config.Port, 1, 65535);
         Config.Normalize();
+        questionDismissals = new QuestionDismissals(Config.DismissedQuestions);
         UiFonts.Initialize(PluginInterface.UiBuilder.FontAtlas);
         UiFonts.Refresh(Config.WindowAppearance!.Text, Config.HudAppearance!.Text, Config.ToastAppearance!.Text);
         History = new NotificationHistory(Config.NotificationHistory);
@@ -55,14 +57,13 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi += OpenMain;
         PluginInterface.UiBuilder.OpenConfigUi += OpenConfig;
         Framework.Update += Update;
-        Log.Information("Codex Monitor 0.6.0 loaded; local bridge port {Port}", Config.Port);
+        Log.Information("Codex Monitor 0.6.1 loaded; local bridge port {Port}", Config.Port);
     }
 
     private static SeString Text(string text) => new SeStringBuilder().AddText(text).Build();
     private void Draw()
     {
-        using var font = UiFonts.Push(Config.WindowAppearance!.Text);
-        ObsidianTheme.Push(Config.WindowAppearance);
+        ObsidianTheme.Push(ObsidianTheme.Chrome);
         try { windows.Draw(); Hud.Draw(); NotificationUi.Draw(Center.IsQuiet); }
         finally { ObsidianTheme.Pop(); }
     }
@@ -114,6 +115,23 @@ public sealed class Plugin : IDalamudPlugin
     {
         Config.Indicator = mode;
         if (mode != IndicatorMode.MiniHud) Hud.SetEditing(false);
+        Save();
+    }
+
+    internal void DismissQuestions(MonitoredThread task)
+    {
+        if (!questionDismissals.Dismiss(task)) return;
+        Config.DismissedQuestions = questionDismissals.Export();
+        NotificationUi.Queue.Reconcile(Snapshot);
+        Save();
+    }
+
+    internal void RestoreQuestions(string threadId)
+    {
+        var restored = Snapshot.Threads.FirstOrDefault(row => row.Id == threadId)?.HiddenQuestionIds ?? [];
+        if (!questionDismissals.Restore(threadId)) return;
+        Config.DismissedQuestions = questionDismissals.Export();
+        Center.RestoreQuestions(threadId, restored);
         Save();
     }
 

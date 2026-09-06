@@ -7,6 +7,14 @@ namespace CodexMonitor;
 // Historical type name; all skins share semantic roles, never job colors for task states.
 internal static class ObsidianTheme
 {
+    // Fixed shell for navigation and settings. Saved data/HUD/toast styles never change it.
+    internal static readonly SurfaceAppearance Chrome = CreateChrome();
+    private static SurfaceAppearance CreateChrome()
+    {
+        var appearance = new SurfaceAppearance(); appearance.ApplyPreset(MonitorSkin.LMeter, AppearanceTarget.Window);
+        appearance.Text.Font = MonitorFont.Dalamud; appearance.Text.Edge = TextEdge.Shadow;
+        return appearance;
+    }
     private static readonly SurfaceAppearance Legacy = SurfaceAppearance.Legacy(AppearanceTarget.Window);
     private static SurfaceAppearance current = Legacy;
     internal static bool Compact => current.Skin != MonitorSkin.Obsidienne;

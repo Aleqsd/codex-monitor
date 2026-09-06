@@ -173,22 +173,26 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
         var accent = ObsidianTheme.State(item.Task.State); accent.W = alpha;
         var foreground = appearance.Text.Color; foreground.W = alpha;
         var secondary = ObsidianTheme.Muted; secondary.W = alpha;
-        var radius = (compact ? 2 : 14) * scale;
+        var radius = (appearance.ToastCornerRadius ?? (compact ? 2 : 14)) * scale;
         draw.AddRectFilled(p, p + size, ObsidianTheme.U(background), radius);
         if (appearance.Border && background.W > 0) draw.AddRect(p, p + size, ObsidianTheme.U(new Vector4(ObsidianTheme.Line.X, ObsidianTheme.Line.Y, ObsidianTheme.Line.Z, background.W)), radius);
         var content = p + (appearance.Padding + Vector2.Abs(appearance.Text.Offset)) * scale;
-        if (compact) draw.AddRectFilled(p, p + new Vector2(3 * scale, size.Y), ObsidianTheme.U(accent));
+        if (compact) draw.AddRectFilled(p + new Vector2(0, radius), p + new Vector2(3 * scale, size.Y - radius), ObsidianTheme.U(accent), 1.5f * scale);
         var center = content + new Vector2(compact ? 25 : 40, compact ? 27 : 48) * scale;
-        if (!compact) draw.AddCircleFilled(center, 20 * scale, ObsidianTheme.U(new Vector4(accent.X * .2f, accent.Y * .2f, accent.Z * .2f, background.W)));
-        DrawSymbol(draw, center, scale * (compact ? .7f : 1), ObsidianTheme.U(accent), item.Task.State);
+        if (appearance.ToastShowIcon)
+        {
+            if (!compact) draw.AddCircleFilled(center, 20 * scale, ObsidianTheme.U(new Vector4(accent.X * .2f, accent.Y * .2f, accent.Z * .2f, background.W)));
+            DrawSymbol(draw, center, scale * (compact ? .7f : 1), ObsidianTheme.U(accent), item.Task.State);
+        }
         var heading = item.Task.State switch
         {
             "idle" => "Tour terminé", "needsInput" => "Réponse requise", "question" => "Question posée",
             "summary" => "Pendant votre absence", "needsApproval" => "Approbation requise", _ => "Une erreur est survenue",
         };
-        var text = content + (new Vector2(compact ? 46 : 75, compact ? 14 : 18) + appearance.Text.Offset) * scale;
+        var textLeft = appearance.ToastShowIcon ? compact ? 46 : 75 : 16;
+        var text = content + (new Vector2(textLeft, compact ? 14 : 18) + appearance.Text.Offset) * scale;
         var fontSize = 17 * scale;
-        var width = size.X - (compact ? 80 : 110) * scale - 2 * (appearance.PaddingX + Math.Abs(appearance.Text.OffsetX)) * scale;
+        var width = size.X - (textLeft + 35) * scale - 2 * (appearance.PaddingX + Math.Abs(appearance.Text.OffsetX)) * scale;
         void Label(string value, float y, Vector4 color, float factor)
         {
             var fitted = ObsidianTheme.Fit(value, width, fontSize * factor);
@@ -202,7 +206,8 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
             : item.Task.State == "summary" ? item.Task.Project : $"Codex · {item.Task.Project}";
         Label(meta, compact ? 46 : 53, secondary, .8f);
         var fraction = preview ? 1 : Math.Clamp((item.Duration - item.Age) / item.Duration, 0, 1);
-        draw.AddRectFilled(p + new Vector2(10 * scale, size.Y - 4 * scale), p + new Vector2(10 * scale + (size.X - 20 * scale) * fraction, size.Y - 2 * scale), ObsidianTheme.U(accent));
+        var timerInset = Math.Max(10 * scale, radius);
+        if (appearance.ToastShowTimer) draw.AddRectFilled(p + new Vector2(timerInset, size.Y - 4 * scale), p + new Vector2(timerInset + (size.X - 2 * timerInset) * fraction, size.Y - 2 * scale), ObsidianTheme.U(accent));
         if (preview && draggable) draw.AddRect(p, p + size, ObsidianTheme.U(accent), radius);
     }
 

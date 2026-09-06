@@ -9,13 +9,19 @@ internal sealed partial class SettingsPanel
     internal AppearanceTarget AppearanceScope;
     private void DrawAppearance()
     {
-        foreach (var (target, label) in new[] { (AppearanceTarget.Window, "Fenêtre"), (AppearanceTarget.Hud, "HUD"), (AppearanceTarget.Notification, "Notifications") })
+        foreach (var (target, label) in new[] { (AppearanceTarget.Window, "Tâches"), (AppearanceTarget.Hud, "HUD"), (AppearanceTarget.Notification, "Notifications") })
         {
             if (target != AppearanceTarget.Window) ImGui.SameLine();
             if (ObsidianTheme.Tab(label, AppearanceScope == target)) AppearanceScope = target;
         }
+        DrawAppearanceEditor();
+    }
+
+    private void DrawAppearanceEditor()
+    {
         var config = plugin.Config;
         var appearance = AppearanceScope switch { AppearanceTarget.Window => config.WindowAppearance!, AppearanceTarget.Hud => config.HudAppearance!, _ => config.ToastAppearance! };
+        if (AppearanceScope == AppearanceTarget.Window) ImGui.TextWrapped("Personnalise uniquement la liste des tâches. Les réglages gardent leur apparence fixe.");
         ObsidianTheme.Section("Thème", "Le preset ne change ni la position ni les autres composants.");
         foreach (var skin in new[] { MonitorSkin.LMeter, MonitorSkin.Obsidienne, MonitorSkin.Nuit })
         {
@@ -27,6 +33,13 @@ internal sealed partial class SettingsPanel
         ColorControl("Fond", new(appearance.Red, appearance.Green, appearance.Blue), value => { appearance.Red = value.X; appearance.Green = value.Y; appearance.Blue = value.Z; });
         SettingFloat("Opacité du fond", appearance.Opacity * 100, 0, 100, "%.0f %%", value => appearance.Opacity = value / 100);
         ImGui.TextDisabled("Le texte et les indicateurs gardent leur opacité.");
+        if (AppearanceScope == AppearanceTarget.Notification)
+        {
+            Toggle("Contour du fond", appearance.Border, value => appearance.Border = value);
+            SettingFloat("Arrondi des coins", appearance.ToastCornerRadius ?? (appearance.Skin == MonitorSkin.Obsidienne ? 14 : 2), 0, 24, "%.0f px", value => appearance.ToastCornerRadius = value);
+            Toggle("Icône de statut", appearance.ToastShowIcon, value => appearance.ToastShowIcon = value);
+            Toggle("Barre de durée", appearance.ToastShowTimer, value => appearance.ToastShowTimer = value);
+        }
         if (AppearanceScope == AppearanceTarget.Hud)
         {
             var background = (int)config.HudAppearance!.Background;
@@ -47,8 +60,8 @@ internal sealed partial class SettingsPanel
         SettingCombo("Lisibilité du texte", ref edge, ["Sans effet", "Ombre", "Contour sombre"], value => appearance.Text.Edge = (TextEdge)value);
         if (ImGui.CollapsingHeader("Disposition et détails"))
         {
-            Toggle("Contour du fond", appearance.Border, value => appearance.Border = value);
-            if (AppearanceScope != AppearanceTarget.Notification)
+            if (AppearanceScope != AppearanceTarget.Notification) Toggle("Contour du fond", appearance.Border, value => appearance.Border = value);
+            if (AppearanceScope == AppearanceTarget.Hud)
                 ColorControl("Accent", new(appearance.AccentRed, appearance.AccentGreen, appearance.AccentBlue), value => { appearance.AccentRed = value.X; appearance.AccentGreen = value.Y; appearance.AccentBlue = value.Z; });
             SettingFloat("Marge horizontale", appearance.PaddingX, 0, 24, "%.0f px", value => appearance.PaddingX = value);
             SettingFloat("Marge verticale", appearance.PaddingY, 0, 16, "%.0f px", value => appearance.PaddingY = value);

@@ -25,7 +25,8 @@ namespace CodexMonitor
     internal sealed class Plugin
     {
         internal Configuration Config { get; } = new();
-        internal MonitorSnapshot Snapshot { get; set; } = new(true, DateTimeOffset.UtcNow,
+        private readonly QuestionDismissals dismissals = new();
+        private MonitorSnapshot raw = new(true, DateTimeOffset.UtcNow,
         [
             new("1", "Améliorer le plugin FF14", "Codex Monitor", "gpt-6-astra", "active", ["11111111111111111111111111111111"]),
             new("2", "Valider les nouveaux écrans du catalogue", "Catalogue", "gpt-6-astra", "needsInput"),
@@ -33,6 +34,9 @@ namespace CodexMonitor
             new("4", "Vérifier les tests et les dépendances du projet", "Projet démo", "gpt-6-astra", "idle"),
             new("5", "Une tâche avec un titre très long qui doit rester lisible et ne jamais recouvrir son état", "Projet de démonstration", "gpt-6-astra", "idle"),
         ], null, true, new AccountUsage(DateTimeOffset.UtcNow, [new(48, 10080, DateTimeOffset.UtcNow.AddDays(6).ToUnixTimeSeconds())]));
+        internal MonitorSnapshot Snapshot { get => dismissals.Apply(raw); set => raw = value; }
+        internal void DismissQuestions(MonitoredThread task) { dismissals.Dismiss(task); Config.DismissedQuestions = dismissals.Export(); NotificationUi.Queue.Reconcile(Snapshot); Save(); }
+        internal void RestoreQuestions(string id) { var restored = Snapshot.Threads.First(row => row.Id == id).HiddenQuestionIds ?? []; dismissals.Restore(id); Config.DismissedQuestions = dismissals.Export(); Center.RestoreQuestions(id, restored); Save(); }
         internal NotificationHistory History { get; } = new();
         internal NotificationOverlay NotificationUi { get; }
         internal NotificationCenter Center { get; }

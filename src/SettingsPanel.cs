@@ -7,6 +7,7 @@ namespace CodexMonitor;
 internal sealed partial class SettingsPanel(Plugin plugin)
 {
     internal int Category;
+    internal bool NotificationDesign;
     private readonly HudMotion hudMotion = new();
     private static readonly string[] ToneNames = ["Silencieux", "Verre", "Goutte", "Velours", "Fichier WAV"];
 
@@ -126,6 +127,17 @@ internal sealed partial class SettingsPanel(Plugin plugin)
 
     private void DrawNotifications()
     {
+        if (ObsidianTheme.Tab("Alertes et placement", !NotificationDesign)) NotificationDesign = false;
+        ImGui.SameLine();
+        if (ObsidianTheme.Tab("Design", NotificationDesign)) NotificationDesign = true;
+        if (NotificationDesign)
+        {
+            var previousScope = AppearanceScope;
+            AppearanceScope = AppearanceTarget.Notification;
+            try { DrawAppearanceEditor(); }
+            finally { AppearanceScope = previousScope; }
+            return;
+        }
         var c = plugin.Config; var n = plugin.NotificationUi;
         ObsidianTheme.Section("Ce qui mérite votre attention");
         Toggle("Un tour se termine", c.NotifyOnIdle, value => c.NotifyOnIdle = value);
@@ -138,7 +150,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         Toggle("Pendant les cinématiques", c.QuietInCutscene, value => c.QuietInCutscene = value);
         ImGui.Separator();
         ObsidianTheme.Section("Notifications");
-        if (ImGui.SmallButton("Personnaliser l’apparence")) { Category = 4; AppearanceScope = AppearanceTarget.Notification; }
+        if (ImGui.SmallButton("Personnaliser l’apparence")) NotificationDesign = true;
         if (ImGui.Button(n.Preview ? "Terminer le placement" : "Placer les notifications")) { plugin.Hud.SetEditing(false); n.SetPreview(!n.Preview); }
         ImGui.SameLine();
         if (ImGui.Button("Recentrer"))
@@ -233,7 +245,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         ImGui.Separator();
         ObsidianTheme.Section("Raccourcis");
         ImGui.TextUnformatted("/codex          Ouvrir les tâches\n/codex history  Consulter l’historique\n/codex preview  Placer les notifications\n/codex hud      Basculer Mini HUD / texte");
-        ImGui.Spacing(); ImGui.TextDisabled("Codex Monitor 0.6.0 · Aleqsd");
+        ImGui.Spacing(); ImGui.TextDisabled("Codex Monitor 0.6.1 · Aleqsd");
         ImGui.TextWrapped(typeof(Configuration).Assembly.Location);
     }
 
