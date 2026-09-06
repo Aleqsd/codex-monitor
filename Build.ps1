@@ -24,7 +24,7 @@ try {
     & $Dotnet build 'src\CodexMonitor.csproj' -c Release --no-restore --nologo
     if ($LASTEXITCODE -ne 0) { throw 'La compilation a échoué.' }
     if ($RunChecks) {
-        & node --test 'bridge\observer.test.mjs'
+        & node --test 'bridge\observer.test.mjs' 'bridge\usage.test.mjs'
         if ($LASTEXITCODE -ne 0) { throw 'Les contrôles du relais ont échoué.' }
         & $Dotnet run --project 'tests\CoreChecks.csproj' -c Release --nologo
         if ($LASTEXITCODE -ne 0) { throw 'Les contrôles du client ont échoué. Le relais réel doit être lancé sur le port 43187.' }

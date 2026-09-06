@@ -5,6 +5,7 @@ import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
 import { CodexObserver } from './observer.mjs';
+import { UsageObserver, findCodexExecutable } from './usage.mjs';
 
 const args = process.argv.slice(2);
 const value = (name, fallback) => { const index = args.indexOf(name); return index < 0 ? fallback : args[index + 1]; };
@@ -45,20 +46,24 @@ function catalog() {
 }
 
 const observer = new CodexObserver();
+const usage = new UsageObserver({ executable: findCodexExecutable(value('--codex-exe', null)), codexHome: codexRoot });
+const snapshot = () => ({ ...observer.snapshot(), usage: usage.snapshot() });
 let saveTimer;
 let stopping = false;
 function save() {
   const temp = path.join(outputRoot, 'status.tmp');
-  writeFileSync(temp, JSON.stringify(observer.snapshot(), null, 2), 'utf8');
+  writeFileSync(temp, JSON.stringify(snapshot(), null, 2), 'utf8');
   renameSync(temp, path.join(outputRoot, 'status.json'));
 }
 observer.on('change', () => { saveTimer ??= setTimeout(() => { saveTimer = null; save(); }, 200); });
+usage.on('change', () => { if (!stopping) saveTimer ??= setTimeout(() => { saveTimer = null; save(); }, 200); });
 observer.on('status', event => {
   appendFileSync(path.join(outputRoot, 'events.jsonl'), JSON.stringify(event) + '\n', 'utf8');
   if (!once) console.log(JSON.stringify(event));
 });
 observer.setCatalog(catalog());
 observer.connect();
+usage.start();
 const refreshTimer = setInterval(async () => {
   try { observer.setCatalog(catalog()); await observer.discover(); }
   catch (error) { observer.lastError = `Catalog read failed: ${error.message}`; observer.emit('change'); }
@@ -73,7 +78,7 @@ const server = once ? null : createServer((req, res) => {
   if (req.method !== 'GET') { res.writeHead(405, { Allow: 'GET' }); res.end(); return; }
   if (req.url !== '/api/threads' && req.url !== '/health') { res.writeHead(404); res.end(); return; }
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.end(JSON.stringify(req.url === '/health' ? { connected: observer.connected, schemaVersion: 1 } : observer.snapshot()));
+  res.end(JSON.stringify(req.url === '/health' ? { connected: observer.connected, schemaVersion: 1 } : snapshot()));
 });
 server?.on('error', error => { console.error(error.message); process.exitCode = 1; shutdown(); });
 server?.listen(port, '127.0.0.1', () => console.log(`Local read-only endpoint: http://127.0.0.1:${port}/api/threads`));
@@ -84,7 +89,8 @@ function shutdown() {
   clearInterval(refreshTimer);
   clearInterval(stopTimer);
   clearTimeout(saveTimer);
-  if (once) console.log(JSON.stringify(observer.snapshot(), null, 2));
+  if (once) console.log(JSON.stringify(snapshot(), null, 2));
+  usage.stop();
   observer.stop();
   server?.close();
   db.close();

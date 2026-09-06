@@ -1,6 +1,7 @@
 import net from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
+import { projectQuestions, projectQuestionPatch, pendingQuestionIds } from './questions.mjs';
 
 export const PIPE = '\\\\.\\pipe\\codex-ipc';
 const MAX_FRAME_BYTES = 256 * 1024 * 1024;
@@ -52,16 +53,19 @@ export class FrameDecoder {
 }
 
 export function selectFields(state) {
-  return Object.fromEntries([...SAFE_FIELDS].filter(key => Object.hasOwn(state, key))
-    .map(key => [key, structuredClone(state[key])]));
+  return { ...Object.fromEntries([...SAFE_FIELDS].filter(key => Object.hasOwn(state, key))
+    .map(key => [key, structuredClone(state[key])])), ...projectQuestions(state) };
 }
 
 export function applyMetadataPatches(fields, patches) {
   const next = structuredClone(fields);
-  for (const patch of patches) {
+  for (let patch of patches) {
     const path = patch.path;
     if (!Array.isArray(path) || path.length === 0) throw new Error('Unsupported patch path');
-    if (!SAFE_FIELDS.has(path[0])) continue;
+    if (!SAFE_FIELDS.has(path[0])) {
+      patch = projectQuestionPatch(patch);
+      if (!patch) continue;
+    }
     if (path.some(part => FORBIDDEN_KEYS.has(String(part)))) throw new Error('Unsafe patch path');
     if (!['add', 'replace', 'remove'].includes(patch.op)) throw new Error('Unsupported patch operation');
     let parent = next;
@@ -275,12 +279,13 @@ export class CodexObserver extends EventEmitter {
   snapshot() {
     const labels = { disconnected: 'Déconnecté', unobserved: 'Non observée', discovering: 'Recherche…',
       awaitingSnapshot: 'Connexion…', unknown: 'État inconnu', incompatible: 'Version incompatible', resyncing: 'Resynchronisation…' };
-    return { schemaVersion: 1, generatedAt: new Date().toISOString(), connected: this.connected,
+    return { schemaVersion: 1, generatedAt: new Date().toISOString(), connected: this.connected, questionTrackingSupported: true,
       source: 'Codex desktop IPC (internal, experimental)', protocolVersion: STREAM_VERSION,
       lastError: this.lastError, metrics: { ...this.metrics }, threads: [...this.rows.values()].map(row => ({
         id: row.id, title: row.fields.generatedTitle || row.fields.title || row.catalog.title,
         project: row.fields.cwd ?? row.catalog.cwd, model: row.fields.latestModel ?? row.catalog.model,
         availability: row.availability,
+        pendingQuestionIds: row.availability === 'live' ? pendingQuestionIds(row.fields) : [],
         ...(row.availability === 'live' ? displayStatus(row.fields.threadRuntimeStatus)
           : { state: row.availability, label: labels[row.availability] ?? 'État inconnu' }),
         runtimeStatus: row.availability === 'live' ? row.fields.threadRuntimeStatus ?? null : null,

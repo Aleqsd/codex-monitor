@@ -1,17 +1,30 @@
-# Validation du prototype 0.1.0
+# Validation 0.6.0
 
-Validation du 6 septembre 2026 : Dalamud 15.0.3.2, API 15, SDK .NET 10.0.400.
+Prérelease expérimentale. Vérifications locales le 6 septembre 2026 sur Windows, Dalamud 15.0.3.2, .NET SDK 10.0.400 et Node.js 22.22.2.
 
-- Compilation : zéro avertissement et zéro erreur.
-- Relais : six contrôles de protocole passent ; les états de cinq tâches correspondent aux outils natifs de Codex. Un véritable passage actif → repos a été observé.
-- Client C# : quinze contrôles passent, dont un accès au relais réel. Ils couvrent les états périmés, coupures, reconnexions et notifications initiales.
-- Jeu : plugin activé par l’utilisateur ; fenêtre, cinq tâches (deux en cours et trois au repos) et compteur observés.
-- Interactions : ouverture/fermeture depuis le compteur, ouverture/retour des réglages, recherche d’une tâche par titre.
-- Coupure réelle du relais : liste effacée et compteur « Codex hors ligne ».
-- Redémarrage réel du relais : retour automatique des cinq tâches.
+- Compilation : zéro avertissement, zéro erreur.
+- 124 contrôles C# et 20 tests Node passent. Ils couvrent les états, les questions structurées, le quota, les coupures/reconnexions, les sons, les timers et la reprise après le mode discret. La lecture HTTP du relais déjà actif est acceptée par le parseur.
+- 24 interactions ImGui hors jeu passent : navigation, modes d’indicateur, audio, styles du HUD, quota, ouverture/déplacement/verrouillage, animations, couleur, opacité, visibilité, contour, restauration, preset, police et taille.
+- 18 contrôles supplémentaires vérifient normalisation, dimensions et migrations d’apparence avec le sérialiseur Newtonsoft.Json installé dans Dalamud. Les deux contrôles précédents de migration/persistance du fond passent aussi.
+- 113 images ImGui hors jeu : 56 vues des skins et polices, 42 vues des parcours et six HUD, 15 vues des fonds. Les vues de skin couvrent 100 %, 150 % et 200 %, largeur minimale, texte long, grande police, fonds clair/sombre et transparence nulle. Les données sont fictives.
+- Le vrai composant de notification est exécuté avec des conditions de combat simulées : une alerte interrompue retrouve sa durée complète et expire normalement.
 
-Les notifications de réponse/approbation ont été vérifiées avec des événements simulés. Leur apparence en jeu n’a pas été testée. Les nouveaux designs ne sont pas encore intégrés. Le contrôle du jeu a été arrêté à la demande de l’utilisateur.
+Les rendus utilisent les composants C# réels et un rasteriseur CPU des triangles ImGui. Les services hôtes sont simulés, avec Segoe UI et Consolas installées localement. Ils ne constituent pas un essai dans FF14.
 
-DLL observée en jeu : SHA-256 `EAC7B2A58C423C294B9CDA3B33C997DEF63312B610EFC58B36CE6A9397BF6583`.
+## Limites
 
-La migration ne remplace pas l’exemplaire chargé dans FF14. Le build produit dans ce dépôt doit être chargé séparément lors du prochain essai autorisé. Les captures et instantanés privés restent hors du dépôt.
+La DLL 0.6.0 n’a pas été chargée ou testée en jeu pendant cette validation. Le chargement et le cycle de vie des polices via l’atlas géré de Dalamud restent à vérifier pendant une session. Expressway n’était pas disponible : le repli est montré, son fichier n’est ni testé ni distribué.
+
+Le remplacement automatique d’un ancien relais par `Activer-Quota.ps1` a seulement été vérifié syntaxiquement. Aucun relais actif n’a été redémarré pour cette évolution visuelle. Un quota affiché « — » peut provenir d’un ancien relais, d’un CLI absent/non connecté ou d’une lecture périmée ; le diagnostic distingue l’ancien relais.
+
+Le protocole interne de Codex Windows peut évoluer. Les fonctions de contrôle de tâches restent hors périmètre : le plugin observe, sans lancer, interrompre, répondre ou approuver.
+
+## Images
+
+![Fenêtre](images/tasks.png)
+
+![Réglages d’apparence](images/appearance.png)
+
+![Formats du HUD](images/hud.png)
+
+Aperçus ImGui hors jeu avec données fictives ; aucune capture LMeter ou tâche réelle n’est publiée.

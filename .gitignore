@@ -9,3 +9,5 @@ artifacts/
 *.suo
 *.zip
 *.log
+AGENTS.md
+/--motion-preview/
