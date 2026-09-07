@@ -4,6 +4,8 @@
 
 Vos tâches Codex dans FF14 : état du travail, questions en attente, notifications et quota restant.
 
+Le modèle et son effort apparaissent sous chaque tâche, par exemple `gpt-6-astra · xhigh`. Le point bleu suit celui de Codex : **Prêtes** regroupe les réponses non lues ; **En cours** indique le travail actif. Lire dans Codex actualise cet indicateur dans FF14.
+
 ![Fenêtre de Codex Monitor](docs/images/tasks.png)
 *Aperçu ImGui hors jeu, avec des données fictives.*
 
@@ -32,6 +34,8 @@ La fenêtre reste fermée au chargement. Dans **Réglages → Visibilité**, cho
 
 Cliquer sur une tâche avec un « ? » permet de masquer sa question dans FF14 ou de la réafficher. Les nouvelles questions restent signalées.
 
+Le même menu permet d’ajouter un favori ou de mettre une tâche en silence pendant 30 min ou 1 h. **Réglages → Suivi** choisit les projets suivis. L’historique propose recherche, filtres et regroupement par tâche.
+
 **Ouvrir** dans la liste, ou **Ouvrir dans Codex** sur une notification, ouvre directement la tâche dans l’application Codex. Les titres affichent les emojis en couleur avec la police Windows.
 
 Dans **Notifications → Design**, personnaliser le fond, la transparence, les coins, les icônes et le texte avec un aperçu. LMeter, Obsidienne et Nuit habillent les éléments du plugin ; les réglages gardent une présentation fixe. Expressway est facultative et locale, avec repli Dalamud.
@@ -41,6 +45,8 @@ Le relais utilise un protocole interne de Codex qui peut évoluer. Le plugin ne 
 ## Mini HUD
 
 Six formats, du simple texte au panneau compact, avec les tâches actives, les questions et le quota restant.
+
+Cliquer sur un compteur ouvre sa liste : tâches en cours, réponses prêtes ou demandes à voir. Le pourcentage ouvre les détails du quota. Dans **Connexion**, choisir les seuils d’alerte et utiliser **Vérifier la connexion** en cas de problème.
 
 Le **Panneau fin** affiche le pourcentage sans barre : vert au-dessus de 50 %, ambre de 20 à 50 %, rouge sous 20 %. Une valeur inconnue reste grise.
 
@@ -55,6 +61,8 @@ La **cloche** ouvre **Ne pas déranger** : 15 min, 30 min, 1 h ou jusqu’à ré
 ## Notifications
 
 Réponse prête, question posée ou résumé au retour du combat. Voici les thèmes LMeter, Obsidienne et Nuit :
+
+Les alertes rapprochées d’une tâche sont regroupées sur deux secondes. Les erreurs sont prioritaires ; une alerte dépassée disparaît. Pour le modèle, l’effort et le point bleu, utiliser le relais inclus dans la **0.10.0 ou une version plus récente**. Un ancien relais affiche « — » pour l’indicateur qu’il ne fournit pas.
 
 ![Aperçus de notifications : réponse prête, question posée et résumé pendant votre absence](docs/images/notifications.png)
 

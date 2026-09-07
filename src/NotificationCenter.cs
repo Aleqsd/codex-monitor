@@ -63,12 +63,14 @@ public sealed class NotificationCenter(NotificationHistory history, Notification
 {
     private MonitorSnapshot previous = MonitorSnapshot.Offline("Initialisation");
     private readonly List<HistoryEntry> deferred = [];
+    private readonly Dictionary<string, (HistoryEntry Entry, DateTimeOffset Due, int Count)> bursts = new();
     private bool wasQuiet;
     public bool IsQuiet { get; private set; }
     public int DeferredCount => deferred.Count;
 
     public void BeginManualPause()
     {
+        deferred.AddRange(bursts.Values.Select(b => b.Entry)); bursts.Clear();
         var pending = queue.Drain().Where(item => item.HistoryId is not null).Select(item => item.HistoryId!.Value).ToHashSet();
         foreach (var entry in history.Entries.Where(entry => pending.Contains(entry.Id)).Reverse())
             if (!deferred.Any(item => item.Id == entry.Id)) deferred.Add(entry);
@@ -80,6 +82,7 @@ public sealed class NotificationCenter(NotificationHistory history, Notification
     {
         previous = snapshot;
         deferred.Clear();
+        bursts.Clear();
         queue.Clear();
         IsQuiet = wasQuiet = true;
     }
@@ -91,32 +94,59 @@ public sealed class NotificationCenter(NotificationHistory history, Notification
             ? row with { PendingQuestionIds = row.QuestionIds.Concat(restoredIds).Distinct().ToArray() } : row).ToArray() };
     }
 
-    public bool Update(MonitorSnapshot snapshot, bool quiet, bool notifyIdle, bool notifyAttention, float duration, DateTimeOffset now, bool notifyQuestions = true)
+    public bool Update(MonitorSnapshot snapshot, bool quiet, bool notifyIdle, bool notifyAttention, float duration, DateTimeOffset now, bool notifyQuestions = true,
+        bool groupBursts = false, Func<MonitoredThread, bool>? allows = null)
     {
         IsQuiet = quiet;
         var changed = false;
         string? sound = null;
         static int Priority(string state) => state == "error" ? 3 : state is "needsInput" or "needsApproval" or "question" ? 2 : 1;
-        if (!snapshot.Connected && previous.Connected) { queue.Clear(); deferred.Clear(); }
+        if (!snapshot.Connected && previous.Connected) { queue.Clear(); deferred.Clear(); bursts.Clear(); }
+        allows ??= _ => true;
+        queue.Retain(allows);
+        deferred.RemoveAll(entry => !allows(entry.Task));
+        foreach (var key in bursts.Keys.ToArray())
+        {
+            var burst = bursts[key];
+            if (!allows(burst.Entry.Task) || !NotificationQueue.IsRelevant(burst.Entry.Task, snapshot)) bursts.Remove(key);
+            else if (quiet) { deferred.Add(burst.Entry); bursts.Remove(key); }
+        }
         if (!ReferenceEquals(previous, snapshot))
         {
             foreach (var task in TransitionDetector.Find(previous, snapshot, true, true))
             {
                 var entry = history.Add(task, now);
                 changed = true;
+                if (!allows(task)) continue;
                 if (!(task.State == "idle" ? notifyIdle : task.State == "question" ? notifyQuestions : notifyAttention)) continue;
                 if (quiet)
                 {
                     deferred.Add(entry);
                     if (deferred.Count > NotificationHistory.Capacity) deferred.RemoveAt(0);
                 }
+                else if (groupBursts && task.State != "error")
+                {
+                    if (bursts.TryGetValue(task.Id, out var old)) bursts[task.Id] = (entry, old.Due, old.Count + 1);
+                    else bursts[task.Id] = (entry, now.AddSeconds(2), 1);
+                    if (bursts.Count > NotificationHistory.Capacity) bursts.Remove(bursts.Keys.First());
+                }
                 else
                 {
+                    bursts.Remove(task.Id);
                     queue.Add(task, duration, entry.Id);
                     if (sound == null || Priority(task.State) > Priority(sound)) sound = task.State;
                 }
             }
             queue.Reconcile(snapshot);
+        }
+        foreach (var key in bursts.Keys.ToArray())
+        {
+            var burst = bursts[key];
+            if (groupBursts && now < burst.Due) continue;
+            bursts.Remove(key);
+            if (quiet || !NotificationQueue.IsRelevant(burst.Entry.Task, snapshot)) continue;
+            queue.Add(burst.Entry.Task, duration, burst.Entry.Id, events: burst.Count);
+            if (sound == null || Priority(burst.Entry.Task.State) > Priority(sound)) sound = burst.Entry.Task.State;
         }
         // A toast interrupted near its expiry needs a full reading interval on return.
         if (wasQuiet && !quiet) queue.RestartTimers();

@@ -34,7 +34,9 @@ Le script optionnel `Activer-Quota.ps1` peut remplacer un ancien relais reconnu 
 
 SQLite est ouvert en lecture seule. Le canal local interne `codex-ipc` confirme les propriétaires et les états. Les titres, projets, modèles et identifiants restent locaux ; le contenu des conversations, questions, réponses et sorties d’outils n’est pas transmis au jeu. Les fichiers `runtime/` et les journaux sont privés et ignorés par Git.
 
-Les questions structurées sont suivies même si le travail continue. Une lecture dans Codex n’est pas exposée comme un état « lu » : le plugin ne crée pas de compteur de non-lus.
+Les questions structurées sont suivies même si le travail continue. Depuis la 0.10.0, le relais transmet aussi le modèle et l’effort de l’exécution chargée ainsi que `hasUnreadTurn`, l’indicateur de lecture réel de Codex. Les anciennes versions ne fournissaient pas cet indicateur. Le jeu ne conserve aucun acquittement local et n’écrit pas dans l’état de lecture de Codex.
+
+Après une mise à jour du plugin, les nouveaux scripts sont utilisés au prochain lancement du relais intégré. Un relais externe reste indépendant : l’arrêter depuis son dossier avant de lancer la nouvelle version. **Vérifier la connexion** contrôle Node, le relais, Codex et le quota sans démarrer de tâche, puis produit un rapport technique copiable sans titres ni données de compte.
 
 Le quota expose sa date de lecture et au plus deux fenêtres de limites. Il utilise le compartiment principal Codex, jamais Spark à sa place. Les identités, crédits et données de paiement ne sont pas exportés. Une erreur ou une donnée trop ancienne masque la valeur sans interrompre le suivi des tâches.
 

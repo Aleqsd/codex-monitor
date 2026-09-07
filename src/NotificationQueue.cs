@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace CodexMonitor;
 
-public sealed record NotificationItem(long Id, MonitoredThread Task, float Age, float Duration, long? HistoryId = null);
+public sealed record NotificationItem(long Id, MonitoredThread Task, float Age, float Duration, long? HistoryId = null, int Events = 1);
 
 /// <summary>Bounded queue. Waiting items only start their timer when they become visible.</summary>
 public sealed class NotificationQueue
@@ -12,17 +12,17 @@ public sealed class NotificationQueue
     private long sequence;
     public const int Capacity = 20;
 
-    public void Add(MonitoredThread task, float duration, long? historyId = null, bool first = false)
+    public void Add(MonitoredThread task, float duration, long? historyId = null, bool first = false, int events = 1)
     {
         lock (gate)
         {
             var replacement = items.FindIndex(item => item.Task.Id == task.Id);
             var item = new NotificationItem(++sequence, task, 0,
-                NotificationGeometry.FiniteClamp(duration, 4, 15, 7), historyId);
-            if (replacement >= 0) { items[replacement] = item; return; }
+                NotificationGeometry.FiniteClamp(duration, 4, 15, 7), historyId, Math.Clamp(events, 1, 100));
+            if (replacement >= 0) { item = item with { Events = Math.Min(100, item.Events + items[replacement].Events) }; items.RemoveAt(replacement); }
             if (items.Count >= Capacity) items.RemoveAt(3);
             if (first) items.Insert(0, item);
-            else items.Add(item);
+            else { var index = items.FindIndex(other => Priority(other.Task.State) < Priority(task.State)); if (index < 0) items.Add(item); else items.Insert(index, item); }
         }
     }
 
@@ -43,6 +43,8 @@ public sealed class NotificationQueue
     }
 
     public void Dismiss(long id) { lock (gate) items.RemoveAll(item => item.Id == id); }
+    internal static int Priority(string state) => state switch { "summary" => 4, "error" => 3, "question" or "needsInput" or "needsApproval" => 2, "quota" => 1, _ => 0 };
+    public void Retain(Func<MonitoredThread, bool> allows) { lock (gate) items.RemoveAll(item => item.HistoryId is not null && item.Task.State != "quota" && !allows(item.Task)); }
     public void Clear() { lock (gate) items.Clear(); }
     public NotificationItem[] Drain() { lock (gate) { var result = items.ToArray(); items.Clear(); return result; } }
     public NotificationItem[] Snapshot() { lock (gate) return items.ToArray(); }
@@ -53,10 +55,11 @@ public sealed class NotificationQueue
     }
     public void Reconcile(MonitorSnapshot snapshot)
     {
-        lock (gate) items.RemoveAll(item => item.HistoryId != null && item.Task.NeedsAttention
-            && !snapshot.Threads.Any(task => task.Id == item.Task.Id && task.IsObserved && (item.Task.State == "question"
-                ? item.Task.QuestionIds.Intersect(task.QuestionIds).Any() : task.State == item.Task.State)));
+        lock (gate) items.RemoveAll(item => item.HistoryId != null && !IsRelevant(item.Task, snapshot));
     }
+    internal static bool IsRelevant(MonitoredThread item, MonitorSnapshot snapshot) => item.State is "quota" or "summary" ||
+        snapshot.Threads.Any(task => task.Id == item.Id && task.IsObserved && (item.State == "question"
+            ? item.QuestionIds.Intersect(task.QuestionIds).Any() : item.State == "idle" ? task.State == "idle" && task.HasUnreadTurn != false : task.State == item.State));
     public int Count { get { lock (gate) return items.Count; } }
 }
 

@@ -10,7 +10,7 @@ internal static unsafe partial class Program
         Directory.CreateDirectory(output);
         foreach (var notifications in new[] { false, true })
         {
-            Initialize(notifications ? 680 : 800, notifications ? 750 : 500, 1);
+            Initialize(notifications ? 680 : 940, notifications ? 750 : 600, 1);
             for (var frame = 0; frame < 3; frame++)
             {
                 ImGui.NewFrame(); ObsidianTheme.Push(ObsidianTheme.Chrome);
@@ -42,12 +42,13 @@ internal static unsafe partial class Program
                 {
                     var snapshot = new MonitorSnapshot(true, DateTimeOffset.UtcNow,
                         [new("demo1", "Préparer une version", "Démo", "", "active", [new string('a', 32)]),
-                         new("demo2", "Vérifier un écran", "Démo", "", "active")], null, true,
+                         new("demo2", "Vérifier un écran", "Démo", "", "active"),
+                         new("demo3", "Livrer un correctif", "Démo", "gpt-6-astra", "idle", HasUnreadTurn:true, LatestTurnStatus:"completed")], null, true,
                         new AccountUsage(DateTimeOffset.UtcNow, [new(48, 10080, null)]));
                     foreach (var style in Enum.GetValues<MiniHudStyle>())
                     {
                         ImGui.PushID((int)style);
-                        var index = (int)style; var p = new Vector2(24 + (index % 2) * 390, 90 + (index / 2) * 120);
+                        var index = (int)style; var p = new Vector2(24 + (index % 2) * 460, 90 + (index / 2) * 145);
                         draw.AddText(p, ObsidianTheme.U(ObsidianTheme.Muted), MiniHudOptions.Names[index]);
                         var appearance = new HudAppearance(); appearance.ApplyPreset(MonitorSkin.Obsidienne, AppearanceTarget.Hud);
                         MiniHud.DrawFace(p + new Vector2(0, 28), MiniHudOptions.Size(style, true, appearance) * 1.25f,

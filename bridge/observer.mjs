@@ -6,7 +6,7 @@ import { projectQuestions, projectQuestionPatch, pendingQuestionIds } from './qu
 export const PIPE = '\\\\.\\pipe\\codex-ipc';
 const MAX_FRAME_BYTES = 256 * 1024 * 1024;
 const STREAM_VERSION = 11;
-const SAFE_FIELDS = new Set(['title', 'generatedTitle', 'cwd', 'latestModel', 'threadRuntimeStatus']);
+const SAFE_FIELDS = new Set(['title', 'generatedTitle', 'cwd', 'latestModel', 'latestReasoningEffort', 'hasUnreadTurn', 'threadRuntimeStatus']);
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 export function encodeFrame(message) {
@@ -97,6 +97,24 @@ export function displayStatus(runtime) {
   if (runtime?.type === 'systemError') return { state: 'error', label: 'Erreur' };
   if (runtime?.type === 'notLoaded') return { state: 'notLoaded', label: 'Non chargée' };
   return { state: 'unknown', label: 'État inconnu' };
+}
+
+export function taskMetadata(fields) {
+  const h = fields.turnHistory?.history;
+  const island = h?.islands?.at(-1);
+  const latest = fields.turnHistory?.kind === 'canonical'
+    ? island?.newerBoundary?.status === 'exhausted' ? h?.entitiesByKey?.[island.entries?.at(-1)?.value] : null
+    : fields.turns?.at(-1);
+  const params = latest?.params;
+  const safe = value => typeof value === 'string' && value.trim() ? value.trim().slice(0, 100) : null;
+  const turnModel = safe(params?.collaborationMode?.settings?.model) ?? safe(params?.model);
+  return {
+    model: turnModel ?? safe(fields.latestModel),
+    reasoningEffort: safe(params?.collaborationMode?.settings?.reasoning_effort) ?? safe(params?.effort) ?? (turnModel ? null : safe(fields.latestReasoningEffort)),
+    modelSource: turnModel ? 'turn' : 'thread',
+    hasUnreadTurn: typeof fields.hasUnreadTurn === 'boolean' ? fields.hasUnreadTurn : null,
+    latestTurnStatus: ['completed', 'inProgress', 'interrupted', 'failed'].includes(latest?.status) ? latest.status : null,
+  };
 }
 
 export class CodexObserver extends EventEmitter {
@@ -279,11 +297,12 @@ export class CodexObserver extends EventEmitter {
   snapshot() {
     const labels = { disconnected: 'Déconnecté', unobserved: 'Non observée', discovering: 'Recherche…',
       awaitingSnapshot: 'Connexion…', unknown: 'État inconnu', incompatible: 'Version incompatible', resyncing: 'Resynchronisation…' };
-    return { schemaVersion: 1, generatedAt: new Date().toISOString(), connected: this.connected, questionTrackingSupported: true,
+    return { schemaVersion: 1, generatedAt: new Date().toISOString(), connected: this.connected, questionTrackingSupported: true, taskMetadataSupported: true,
       source: 'Codex desktop IPC (internal, experimental)', protocolVersion: STREAM_VERSION,
       lastError: this.lastError, metrics: { ...this.metrics }, threads: [...this.rows.values()].map(row => ({
         id: row.id, title: row.fields.generatedTitle || row.fields.title || row.catalog.title,
-        project: row.fields.cwd ?? row.catalog.cwd, model: row.fields.latestModel ?? row.catalog.model,
+        project: row.fields.cwd ?? row.catalog.cwd,
+        ...taskMetadata(row.availability === 'live' ? row.fields : { latestModel: row.catalog.model }),
         availability: row.availability,
         pendingQuestionIds: row.availability === 'live' ? pendingQuestionIds(row.fields) : [],
         ...(row.availability === 'live' ? displayStatus(row.fields.threadRuntimeStatus)

@@ -59,3 +59,11 @@ Le [catalogue Dalamud d’Aleqsd](https://github.com/Aleqsd/dalamud-plugins) est
 `RelayAutoStart` évalue l’option après connexion et chargement, respecte un arrêt manuel et borne les tentatives. `RelayLauncher` garde les accès système sur son worker ; `RelayRuntimeStorage` ne nettoie que les dossiers plats reconnus et marqués après arrêt confirmé. Le relais limite ses journaux avec `files.mjs`.
 
 `TaskListProjection` conserve les tâches à voir malgré le filtre d’inactivité. `ImGuiListClipper` limite le rendu aux lignes visibles. Les caches de texte sont bornés avec éviction progressive ; le cache de mesure est invalidé lors du rafraîchissement des polices. Une erreur d’ouverture est liée à sa tâche pendant vingt secondes et peut être fermée ou retentée. Les emojis disposent de trois tentatives espacées et d’un diagnostic de repli.
+
+## Métadonnées et suivi (0.10.0)
+
+Le flux expérimental v11 expose `hasUnreadTurn` et les réglages de modèle/effort. Le relais ne lit pas les corps des messages pour cette fonction et conserve uniquement les champs nécessaires. Les paramètres de la dernière exécution confirmée ont priorité sur le réglage de la tâche ; un fragment historique paginé ne devient pas « courant ». Le format public ajoute des champs optionnels et un indicateur de prise en charge, en conservant le schéma 1.
+
+`TaskFollowing` met en cache la sélection de projets et les favoris. Le HUD et les notifications utilisent cette même projection ; l’historique conserve sa source complète. `QuotaAlerts` identifie une période par sa durée et sa date de réinitialisation et sauvegarde les seuils déjà franchis. `ConnectionDiagnostics` exécute Node et HTTP en arrière-plan, puis ne publie que des résultats techniques autorisés. Aucun diagnostic ne démarre une tâche ni ne lit les secrets de connexion.
+
+Le point bleu a été confirmé dans le flux local de l’application installée, en complément des commandes de lecture décrites dans la [documentation officielle Codex](https://learn.chatgpt.com/docs/reference/commands#keyboard-shortcuts). Il reste une intégration interne susceptible d’évoluer, pas une API publique garantie.

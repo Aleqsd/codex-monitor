@@ -26,6 +26,14 @@ namespace CodexMonitor
     {
         internal Configuration Config { get; } = new();
         private readonly QuestionDismissals dismissals = new();
+        private readonly TaskFollowing following = new();
+        internal ConnectionDiagnostics Diagnostics { get; } = new();
+        internal MonitorSnapshot AllTasks => dismissals.Apply(raw);
+        internal void ToggleFavorite(string id) { Config.Following.ToggleFavorite(id); Save(); }
+        internal void MuteTask(string id, int minutes) { Config.Following.Mute(id, minutes, DateTimeOffset.UtcNow); Save(); }
+        internal int LastTaskFilter = -1; internal bool QuotaOpened;
+        internal void OpenTasks(int filter) { LastTaskFilter = filter; OpenCount++; }
+        internal void OpenQuota() { QuotaOpened = true; OpenCount++; }
         private MonitorSnapshot raw = new(true, DateTimeOffset.UtcNow,
         [
             new("1", "Améliorer le plugin FF14", "Codex Monitor", "gpt-6-astra", "active", ["11111111111111111111111111111111"]),
@@ -34,7 +42,7 @@ namespace CodexMonitor
             new("4", "Vérifier les tests et les dépendances du projet", "Projet démo", "gpt-6-astra", "idle"),
             new("5", "Une tâche avec un titre très long qui doit rester lisible et ne jamais recouvrir son état", "Projet de démonstration", "gpt-6-astra", "idle"),
         ], null, true, new AccountUsage(DateTimeOffset.UtcNow, [new(48, 10080, DateTimeOffset.UtcNow.AddDays(6).ToUnixTimeSeconds())]));
-        internal MonitorSnapshot Snapshot { get => dismissals.Apply(raw); set => raw = value; }
+        internal MonitorSnapshot Snapshot { get => following.Apply(AllTasks, Config.Following); set { raw = value; following.Invalidate(); } }
         internal void DismissQuestions(MonitoredThread task) { dismissals.Dismiss(task); Config.DismissedQuestions = dismissals.Export(); NotificationUi.Queue.Reconcile(Snapshot); Save(); }
         internal void RestoreQuestions(string id) { var restored = Snapshot.Threads.First(row => row.Id == id).HiddenQuestionIds ?? []; dismissals.Restore(id); Config.DismissedQuestions = dismissals.Export(); Center.RestoreQuestions(id, restored); Save(); }
         internal NotificationHistory History { get; } = new();
@@ -65,7 +73,7 @@ namespace CodexMonitor
             History.Add(Snapshot.Threads[3], DateTimeOffset.Now.AddMinutes(-3));
             History.Add(Snapshot.Threads[1], DateTimeOffset.Now);
         }
-        internal void Save() { Config.Normalize(); SaveCount++; }
+        internal void Save() { Config.Normalize(); following.Invalidate(); SaveCount++; }
         internal void SetIndicator(IndicatorMode mode) { Config.Indicator = mode; Save(); }
     }
 }

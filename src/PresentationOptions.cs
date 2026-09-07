@@ -30,12 +30,12 @@ public static class MiniHudOptions
     }
     private static System.Numerics.Vector2 BaseSize(MiniHudStyle style, bool quota) => style switch
     {
-        MiniHudStyle.Fil => new(quota ? 180 : 126, 28),
+        MiniHudStyle.Fil => new(quota ? 218 : 164, 28),
         MiniHudStyle.Balise => new(58, 58),
-        MiniHudStyle.Lisere => new(quota ? 220 : 166, 34),
-        MiniHudStyle.Totem => new(58, quota ? 100 : 68),
-        MiniHudStyle.ObsidienneFine => new(250, 60),
-        _ => new(quota ? 176 : 122, 36),
+        MiniHudStyle.Lisere => new(quota ? 260 : 206, 34),
+        MiniHudStyle.Totem => new(58, quota ? 132 : 100),
+        MiniHudStyle.ObsidienneFine => new(310, 60),
+        _ => new(quota ? 216 : 162, 36),
     };
 }
 

@@ -31,6 +31,9 @@ public sealed class Plugin : IDalamudPlugin
     internal RelayAutoStart AutoRelay { get; } = new();
     internal string PauseDescription { get; private set; } = "Notifications et sons actifs";
     private readonly QuestionDismissals questionDismissals;
+    private readonly TaskFollowing following = new();
+    private readonly QuotaAlerts quotaAlerts = new();
+    internal ConnectionDiagnostics Diagnostics { get; } = new();
     private readonly EmojiImages emojis;
     private DateTimeOffset nextEmojiRefresh;
     private bool fontsDirty;
@@ -48,7 +51,8 @@ public sealed class Plugin : IDalamudPlugin
     internal RelayLauncher Relay { get; }
     internal CodexTaskLink TaskLink { get; } = new();
     internal string EmojiStatus => emojis.Status;
-    internal MonitorSnapshot Snapshot => questionDismissals.Apply(client.Current);
+    internal MonitorSnapshot AllTasks => questionDismissals.Apply(client.Current);
+    internal MonitorSnapshot Snapshot => following.Apply(AllTasks, Config.Following);
 
     public Plugin()
     {
@@ -101,9 +105,14 @@ public sealed class Plugin : IDalamudPlugin
     private void OpenMain() { MarkManualOpen(); main.ShowSettings = false; main.ShowHistory = false; main.IsOpen = true; }
     private void OpenConfig() { MarkManualOpen(); main.ShowSettings = true; main.ShowHistory = false; main.IsOpen = true; }
     private void OpenHistory() { MarkManualOpen(); main.ShowSettings = false; main.ShowHistory = true; main.IsOpen = true; }
+    internal void OpenTasks(int filter) { OpenMain(); main.SelectTasks(filter); }
+    internal void OpenQuota() { OpenConfig(); main.SelectConnection(); }
+    internal void ToggleFavorite(string id) { Config.Following.ToggleFavorite(id); Save(); }
+    internal void MuteTask(string id, int minutes) { Config.Following.Mute(id, minutes, DateTimeOffset.UtcNow); Save(); }
     private void OnNotificationClick(NotificationItem item)
     {
         if (item.Task.State == "summary") OpenHistory();
+        else if (item.Task.State == "quota") OpenQuota();
         else OpenMain();
     }
     private void OnCommand(string command, string args)
@@ -141,6 +150,7 @@ public sealed class Plugin : IDalamudPlugin
         lock (saveGate)
         {
             Config.Normalize();
+            following.Invalidate();
             ApplyVisibility();
             fontsDirty = true;
             Config.NotificationHistory = History.Entries.ToList();
@@ -226,10 +236,19 @@ public sealed class Plugin : IDalamudPlugin
         var quiet = ApplyQuiet(game, now);
         if (outside || suspended) Center.Suspend(snapshot);
         suspended = outside;
-        if (!outside && Center.Update(snapshot, quiet, Config.NotifyOnIdle, Config.NotifyOnAttention, Config.NotificationSeconds, now, Config.NotifyOnQuestions)) Save();
+        var changed = !outside && Center.Update(snapshot, quiet, Config.NotifyOnIdle, Config.NotifyOnAttention, Config.NotificationSeconds, now, Config.NotifyOnQuestions,
+            Config.GroupNotificationBursts, task => Config.Following.Allows(task, now));
+        var quotaNotices = quotaAlerts.Update(snapshot, Config.QuotaAlerts, quiet, outside, now);
+        foreach (var notice in quotaNotices)
+        {
+            var task = notice.Task(now); var entry = History.Add(task, now);
+            NotificationUi.Queue.Add(task, Config.NotificationSeconds, entry.Id); changed = true;
+        }
+        if (quotaNotices.Count > 0) Sounds.Play("needsInput", Config.Sounds);
+        if (changed || quotaAlerts.Changed) Save();
         if (ReferenceEquals(previous, snapshot) && lastPauseDescription == PauseDescription) return;
         lastPauseDescription = PauseDescription;
-        var dtrLabel = snapshot.Connected ? $"Codex · {snapshot.Active} en cours · {snapshot.Attention} à voir" : "Codex hors ligne";
+        var dtrLabel = snapshot.Connected ? $"Codex · {snapshot.Active} en cours · {snapshot.ReadyCount} {(snapshot.Ready==1 ? "prête" : "prêtes")} · {snapshot.Attention} à voir" : "Codex hors ligne";
         if (quiet) dtrLabel += " · Pause";
         if (lastDtrLabel != dtrLabel) { lastDtrLabel = dtrLabel; dtr.Text = Text(dtrLabel); }
         dtr.Tooltip = Text(snapshot.Connected
@@ -264,6 +283,7 @@ public sealed class Plugin : IDalamudPlugin
         NotificationUi.Queue.Clear();
         Sounds.Dispose();
         Relay.Dispose();
+        Diagnostics.Dispose();
         dtr.Remove();
         windows.RemoveAllWindows();
         client.Dispose();

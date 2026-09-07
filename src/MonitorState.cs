@@ -3,8 +3,12 @@ using System.Text.Json.Serialization;
 
 namespace CodexMonitor;
 
-public sealed record MonitoredThread(string Id, string Title, string Project, string Model, string State, string[]? PendingQuestionIds = null, string[]? HiddenQuestionIds = null)
+public sealed record MonitoredThread(string Id, string Title, string Project, string Model, string State, string[]? PendingQuestionIds = null, string[]? HiddenQuestionIds = null,
+    string? ReasoningEffort = null, bool? HasUnreadTurn = null, string? LatestTurnStatus = null, string? ProjectId = null, bool IsFavorite = false, string? ModelSource = null)
 {
+    public string ProjectKey => ProjectId ?? Project;
+    public bool ResponseReady => State == "idle" && HasUnreadTurn == true;
+    public string ModelLabel => Model.Length == 0 ? "Modèle non fourni" : Model + " · " + (ReasoningEffort ?? "effort non fourni");
     public string[] QuestionIds => PendingQuestionIds ?? [];
     public bool HasQuestion => IsObserved && QuestionIds.Length > 0;
     public bool NeedsAttention => State is "needsInput" or "needsApproval" or "error" or "question" || HasQuestion;
@@ -12,11 +16,12 @@ public sealed record MonitoredThread(string Id, string Title, string Project, st
     public string Label => State switch
     {
         "active" => "En cours",
-        "idle" => "Sans activité",
+        "idle" => ResponseReady ? "Réponse prête" : LatestTurnStatus == "completed" ? "Réponse terminée" : "Sans activité",
         "needsInput" => "Réponse attendue",
         "needsApproval" => "Approbation",
         "error" => "Erreur",
         "question" => "Question posée",
+        "quota" => "Quota bas",
         "disconnected" => "Déconnectée",
         "incompatible" => "Version incompatible",
         "resyncing" => "Synchronisation…",
@@ -26,12 +31,15 @@ public sealed record MonitoredThread(string Id, string Title, string Project, st
 
 public sealed record MonitorSnapshot(bool Connected, DateTimeOffset ReceivedAt,
     IReadOnlyList<MonitoredThread> Threads, string? Error, bool QuestionTrackingSupported = false, AccountUsage? Usage = null, bool UsageTrackingSupported = false,
-    string? RelayVersion = null, QuotaDiagnostic? QuotaDiagnostic = null)
+    string? RelayVersion = null, QuotaDiagnostic? QuotaDiagnostic = null, bool TaskMetadataSupported = false)
 {
     public static MonitorSnapshot Offline(string error) => new(false, DateTimeOffset.UtcNow, [], error);
     public int Active => Threads.Count(thread => thread.State == "active");
     public int Attention => Threads.Count(thread => thread.NeedsAttention);
     public int Idle => Threads.Count(thread => thread.State == "idle");
+    public int Ready => Threads.Count(thread => thread.ResponseReady);
+    public bool ReadStateSupported => TaskMetadataSupported || Threads.Any(thread => thread.HasUnreadTurn is not null);
+    public string ReadyCount => Connected && ReadStateSupported ? Ready.ToString() : "—";
     public UsageWindow? CurrentUsage => Connected ? Usage?.Current(DateTimeOffset.UtcNow) : null;
     public UsageWindow? SelectedUsage(UsagePreference preference) => Connected ? Usage?.Current(DateTimeOffset.UtcNow, preference) : null;
     public int Questions => Threads.Where(thread => thread.IsObserved).Sum(thread => thread.QuestionIds.Length);
@@ -68,10 +76,14 @@ public static class MonitorContract
             var questions = state is "active" or "idle" or "needsInput" or "needsApproval" or "error"
                 && response.QuestionTrackingSupported ? (row.PendingQuestionIds ?? []).Where(id => id is { Length: 32 } && id.All(Uri.IsHexDigit)).Distinct().Take(100).ToArray() : [];
             threads.Add(new MonitoredThread(row.Id, Clean(row.Title, "Tâche sans titre", 1500),
-                ProjectName(row.Project), Clean(row.Model, "", 100), state, questions));
+                ProjectName(row.Project), Clean(row.Model, "", 100), state, questions, ReasoningEffort: Effort(row.ReasoningEffort),
+                HasUnreadTurn: row.Availability == "live" && state != "unobserved" && row.HasUnreadTurn.ValueKind is JsonValueKind.True or JsonValueKind.False ? row.HasUnreadTurn.GetBoolean() : null,
+                LatestTurnStatus: row.LatestTurnStatus.ValueKind == JsonValueKind.String && row.LatestTurnStatus.GetString() is "completed" or "inProgress" or "interrupted" or "failed" ? row.LatestTurnStatus.GetString() : null,
+                ProjectId: Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes((row.Project ?? "").Replace('\\', '/').TrimEnd('/').ToUpperInvariant()))),
+                ModelSource: row.ModelSource.ValueKind == JsonValueKind.String && row.ModelSource.GetString() == "turn" ? "turn" : "thread"));
         }
         return new MonitorSnapshot(true, now, threads.AsReadOnly(), null, response.QuestionTrackingSupported, AccountUsage.Parse(response.Usage), response.Usage.ValueKind != JsonValueKind.Undefined,
-            relayVersion, diagnostic);
+            relayVersion, diagnostic, response.TaskMetadataSupported.ValueKind == JsonValueKind.True);
     }
 
     public static string Clean(string? value, string fallback, int maxLength)
@@ -80,6 +92,8 @@ public static class MonitorContract
         var cleaned = string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         return UnicodeText.Truncate(cleaned, maxLength);
     }
+    private static string? Effort(JsonElement value) => value.ValueKind == JsonValueKind.String
+        && value.GetString() is "none" or "minimal" or "low" or "medium" or "high" or "xhigh" or "max" or "ultra" ? value.GetString() : null;
 
     private static string ProjectName(string? value)
     {
@@ -93,6 +107,7 @@ public static class MonitorContract
         public bool Connected { get; set; }
         public DateTimeOffset GeneratedAt { get; set; }
         public bool QuestionTrackingSupported { get; set; }
+        public JsonElement TaskMetadataSupported { get; set; }
         public JsonElement Usage { get; set; }
         public JsonElement RelayVersion { get; set; }
         public JsonElement QuotaDiagnostic { get; set; }
@@ -105,6 +120,10 @@ public static class MonitorContract
         public string? Title { get; set; }
         public string? Project { get; set; }
         public string? Model { get; set; }
+        public JsonElement ReasoningEffort { get; set; }
+        public JsonElement HasUnreadTurn { get; set; }
+        public JsonElement LatestTurnStatus { get; set; }
+        public JsonElement ModelSource { get; set; }
         public string State { get; set; } = "unobserved";
         public string Availability { get; set; } = "unobserved";
         public DateTimeOffset? LastConfirmedAt { get; set; }

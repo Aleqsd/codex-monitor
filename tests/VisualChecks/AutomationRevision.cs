@@ -43,7 +43,7 @@ internal static unsafe partial class Program
             plugin.Snapshot = plugin.Snapshot with { Threads = [plugin.Snapshot.Threads[0] with { State = "idle", PendingQuestionIds = [new('a',32), new('b',32), new('c',32)] }] };
             typeof(MainWindow).GetField("stateFilter", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(window, 2);
             for (var n = 0; n < 3; n++) Frame(); Render(Path.Combine(output, $"attention-{width}.ppm"));
-            Click(width - 40 * scale, 245 * scale);
+            Click(width - 40 * scale, 280 * scale);
             SpinWait.SpinUntil(() => { lock (plugin.OpenedLinks) return plugin.OpenedLinks.Count == 1; }, 1000);
             Check(plugin.OpenedLinks.Count == 1, "Filtered idle question remains visible and its Open button works");
             window.ShowSettings = true; Panel.Category = 3; plugin.Config.AutoStartRelay = true;

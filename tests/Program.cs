@@ -5,11 +5,13 @@ using CodexMonitor;
 
 var id = Guid.NewGuid().ToString();
 var now = DateTimeOffset.UtcNow;
+if (args.Contains("--workflow-checks")) { Console.WriteLine($"{WorkflowChecks.Run()} workflow checks passed."); return; }
 if (args.Contains("--presentation-checks")) { Console.WriteLine($"{await PresentationChecks.Run()} Unicode and task-link checks passed."); return; }
 await using var liveLaunch = args.Contains("--launch-live") ? await LiveRelayCheck.Start() : null;
 if (args.Contains("--quiet-return-checks")) { Console.WriteLine($"{QuietReturnChecks.Run()} quiet-return checks passed."); return; }
 if (args.Contains("--hud-motion-checks")) { Console.WriteLine($"{HudMotionChecks.Run()} HUD motion checks passed."); return; }
 var checks = 0;
+checks += WorkflowChecks.Run();
 checks += await AutomationChecks.Run();
 checks += VisibilityChecks.Run();
 checks += QuestionDismissalChecks.Run();
@@ -55,6 +57,11 @@ using (var http = new HttpClient())
     {
         Check(snapshot.RelayVersion == PluginVersion.Current && snapshot.QuotaDiagnostic is not null, "Actual embedded relay provides its version and quota diagnostics");
         Console.WriteLine($"LIVE relay {snapshot.RelayVersion}; quota diagnostic: {snapshot.QuotaDiagnostic!.Status}; value available: {snapshot.CurrentUsage is not null}");
+        Check(snapshot.TaskMetadataSupported && snapshot.Threads.Any(task => task.HasUnreadTurn is not null && task.Model.Length > 0 && task.ReasoningEffort is not null), "Actual IPC supplies model, effort and Codex read state");
+        using var diagnostics = new ConnectionDiagnostics(); diagnostics.Check(43187, "");
+        await Until(() => !diagnostics.Report.Busy);
+        Check(diagnostics.Report.Steps.Any(step => step.Name == "Node.js" && step.Ready == true)
+            && diagnostics.Report.Steps.Any(step => step.Name == "Codex" && step.Ready == true), "Actual read-only guided diagnostic validates Node and Codex");
     }
     Console.WriteLine($"LIVE {snapshot.Active} active, {snapshot.Attention} attention, {snapshot.Idle} idle");
 }

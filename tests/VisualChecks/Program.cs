@@ -27,6 +27,7 @@ internal static unsafe partial class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--workflow-preview")) { WorkflowRevision(args.Last()); return; }
         if (args.Contains("--automation-config-checks")) { AutomationConfigChecks(); return; }
         if (args.Contains("--automation-preview")) { AutomationRevision(args.Last()); return; }
         if (args.Contains("--navigation-preview")) { NavigationPreview(args.Last()); return; }

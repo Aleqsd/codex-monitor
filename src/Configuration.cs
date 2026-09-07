@@ -8,6 +8,9 @@ public sealed class Configuration : IPluginConfiguration
     public int Version { get; set; } = 1;
     public int Port { get; set; } = 43187;
     public bool ShowIdle { get; set; } = true;
+    public FollowingOptions Following { get; set; } = new();
+    public QuotaAlertOptions QuotaAlerts { get; set; } = new();
+    public bool GroupNotificationBursts { get; set; } = true;
     public bool ShowUnobserved { get; set; }
     public bool ShowDtr { get; set; } = true;
     public IndicatorMode? Indicator { get; set; }
@@ -60,6 +63,8 @@ public sealed class Configuration : IPluginConfiguration
 
     public void Normalize()
     {
+        Following ??= new(); Following.Normalize();
+        QuotaAlerts ??= new(); QuotaAlerts.Normalize();
         // Previous versions opened the window by default. Apply the new quiet startup once;
         // later explicit opt-ins, appearance, anchors and history survive normalization.
         if (Visibility is null) { Visibility = new VisibilityOptions(); OpenOnLoad = false; }

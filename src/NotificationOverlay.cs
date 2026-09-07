@@ -149,7 +149,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
                 }
                 if (!preview && ImGui.IsItemClicked()) openMonitor(item);
 
-                var summary = item.Task.State == "summary";
+                var summary = item.Task.State is "summary" or "quota";
                 var canOpen = summary || (taskLink is not null && CodexTaskLink.Build(item.Task.Id) is not null);
                 var buttonSize = new Vector2(Math.Min(200 * scale, size.X - 32 * scale), 23 * scale);
                 ImGui.SetCursorPos(new Vector2(16 * scale, size.Y - 32 * scale));
@@ -203,7 +203,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
         var heading = item.Task.State switch
         {
             "idle" => "Réponse prête", "needsInput" => "Réponse requise", "question" => "Question posée",
-            "summary" => "Pendant votre absence", "needsApproval" => "Approbation requise", _ => "Une erreur est survenue",
+            "summary" => "Pendant votre absence", "quota" => "Quota Codex bas", "needsApproval" => "Approbation requise", _ => "Une erreur est survenue",
         };
         var textLeft = appearance.ToastShowIcon ? compact ? 46 : 75 : 16;
         var text = content + (new Vector2(textLeft, compact ? 14 : 18) + appearance.Text.Offset) * scale;
@@ -219,10 +219,11 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
         Label(heading, 0, accent, 1);
         Label(item.Task.Title, compact ? 23 : 26, foreground, .94f);
         var meta = preview ? (draggable ? "APERÇU · Glisser pour placer l’ancre" : "APERÇU · Données fictives")
-            : item.Task.State == "summary" ? item.Task.Project : $"Codex · {item.Task.Project}";
+            : item.Task.State is "summary" or "quota" ? item.Task.Project : $"Codex · {item.Task.Project}";
+        if (item.Events > 1) meta += $" · {item.Events} événements regroupés";
         Label(actionError ?? meta, compact ? 46 : 53, actionError is null ? secondary : new Vector4(ObsidianTheme.Red.X, ObsidianTheme.Red.Y, ObsidianTheme.Red.Z, alpha), .8f);
-        var actionLabel = item.Task.State == "summary" ? "Voir l’historique" : "Ouvrir dans Codex";
-        var actionColor = preview || CodexTaskLink.Build(item.Task.Id) is null && item.Task.State != "summary" ? secondary : accent;
+        var actionLabel = item.Task.State == "summary" ? "Voir l’historique" : item.Task.State == "quota" ? "Voir le quota" : "Ouvrir dans Codex";
+        var actionColor = preview || CodexTaskLink.Build(item.Task.Id) is null && item.Task.State is not ("summary" or "quota") ? secondary : accent;
         ObsidianTheme.DrawText(draw, actionLabel, p + new Vector2(16 * scale, size.Y - 28 * scale), actionColor, fontSize * .82f, appearance.Text);
         var fraction = preview ? 1 : Math.Clamp((item.Duration - item.Age) / item.Duration, 0, 1);
         var timerInset = Math.Max(10 * scale, radius);

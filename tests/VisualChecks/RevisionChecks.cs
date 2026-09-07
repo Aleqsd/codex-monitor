@@ -14,7 +14,7 @@ internal static unsafe partial class Program
             Initialize(width, height, scale);
             for (var n=0; n<3; n++) Frame();
             Render(Path.Combine(output, $"tasks-{width}.ppm"));
-            Click(100 * scale, 205 * scale);
+            Click(100 * scale, 250 * scale);
             Render(Path.Combine(output, $"question-menu-{width}.ppm"));
             Click(width - 20, height - 20);
             window.ShowSettings = true; Panel.Category = 1; Panel.NotificationDesign = true;
@@ -44,10 +44,10 @@ internal static unsafe partial class Program
         const string output = "artifacts/revision-smoke"; Directory.CreateDirectory(output);
         Initialize(800, 924, 1);
         for (var n=0; n<3; n++) Frame();
-        Click(100,205); Render(Path.Combine(output,"menu.ppm"));
-        Click(170,302);
+        Click(100,250); Render(Path.Combine(output,"menu.ppm"));
+        Click(170,429);
         if (plugin.Snapshot.Attention != 1 || plugin.Config.DismissedQuestions.Count != 1) throw new Exception("Native dismissal click did not clear the question.");
-        Click(100,263); Click(175,360);
+        Click(100,313); Click(175,492);
         if (plugin.Snapshot.Attention != 2 || plugin.Config.DismissedQuestions.Count != 0) throw new Exception("Native restore click did not restore the question.");
         Click(195,87); Click(130,134); Click(180,172);
         if (!window.ShowSettings || Panel.Category != 1 || !Panel.NotificationDesign) throw new Exception("Direct notification design navigation failed.");

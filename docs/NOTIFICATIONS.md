@@ -53,7 +53,7 @@ Les options **Pendant les combats** et **Pendant les cinématiques** sont activ�
 
 `/codex history` ouvre les 100 derniers événements, du plus récent au plus ancien, avec leur heure locale. **Demandes à traiter seulement** filtre les demandes encore actives. **Effacer** vide le journal local.
 
-La version 0.4 supprime les non-lus et les boutons « Marquer lu ». Le relais ne fournit pas les lectures effectuées dans Codex : un compteur local pouvait donc rester allumé après lecture sur PC. Les indicateurs suivent maintenant uniquement les tâches actives et les interventions actuellement requises. Lire une demande ne la résout pas ; répondre, approuver ou reprendre la tâche fait évoluer son état. Les anciennes marques de lecture sont ignorées à la migration et les événements sont conservés. Les notifications restent temporaires et ne demandent aucun acquittement.
+La version 0.4 avait supprimé les anciens non-lus locaux, qui ne suivaient pas les lectures dans Codex. Depuis la 0.10.0, le relais lit le véritable indicateur `hasUnreadTurn` : « Prêtes » compte les tâches inactives dont la réponse est non lue dans Codex. Le point bleu et la notification de fin disparaissent quand Codex retire cet indicateur. Ce signal ne signifie pas que l’objectif entier est terminé. Il n’existe toujours aucun bouton « Marquer lu » propre au jeu. Lire une question ne la résout pas ; les demandes explicites gardent leur état.
 
 Les anciennes alertes sont distinguées des interventions actuellement en cours. Lorsque le relais ou une tâche n’est plus observable, l’historique indique **État actuel inconnu**. Il conserve aussi les événements dont les popups sont désactivés. Les exemples de test et résumés ne créent pas d’entrées supplémentaires.
 
@@ -92,3 +92,15 @@ Le Panneau fin n’a plus de barre de quota. Le texte du quota est vert au-dessu
 La cloche du mini HUD, le bouton de la fenêtre ou `/codex dnd` mettent les alertes en pause (30 minutes avec la commande sans argument). Le menu propose 15 minutes, 30 minutes, une heure ou la session. `/codex dnd off` reprend, `/codex dnd session` attend une réactivation. La pause manuelle expire à la déconnexion du personnage.
 
 Les compteurs et l’historique continuent ; notifications et sons, y compris les écoutes d’essai, attendent. La reprise conserve le délai de deux secondes au calme et les règles de combat/cinématique. Les alertes en file et les nouveaux événements sont regroupés ; les questions déjà traitées ne restent pas annoncées comme en attente.
+
+## Suivi et événements rapprochés (0.10.0)
+
+**Réglages → Suivi** sélectionne les projets qui alimentent la liste, le HUD et les nouvelles notifications. Tous les projets restent suivis par défaut. La sélection distingue les dossiers, même si leur nom est identique ; les favoris sont locaux à FF14 et restent soumis à cette sélection. Cliquer sur une tâche permet de la mettre en favori ou de couper ses alertes pendant 30 min ou 1 h. L’état et l’historique restent accessibles ; les alertes anciennes ne sont pas rejouées à la réactivation.
+
+Les notifications ordinaires attendent deux secondes pour regrouper les événements rapprochés d’une même tâche. Les erreurs sont immédiates et prioritaires, puis les demandes d’intervention, puis le quota et les réponses prêtes. Une reprise du travail, une lecture dans Codex ou la résolution d’une demande retire l’alerte devenue obsolète. Ce regroupement peut être désactivé dans Notifications ; la pause au survol et la durée réellement visible sont conservées.
+
+L’historique recherche les titres et les projets, filtre questions/demandes, erreurs, réponses prêtes ou quota, et regroupe les événements par tâche. Les événements anciens restent dans l’historique même si leur projet n’est plus suivi.
+
+Les alertes de quota proposent les seuils 20, 10 et 5 % par défaut, personnalisables de 1 à 99 %. Elles suivent les deux périodes fournies, une fois par seuil et par période identifiée. Plusieurs seuils franchis ensemble donnent une seule alerte pour cette période. Les marques sont sauvegardées pour éviter les répétitions après rechargement. La première lecture et la reconnexion posent une référence silencieuse ; une donnée inconnue, périmée ou sans échéance de période ne déclenche rien. La pause conserve au plus une alerte pertinente par période, avec la valeur actuelle et le délai de renouvellement au retour.
+
+Le modèle et l’effort affichés proviennent en priorité des paramètres de l’exécution chargée, puis du réglage de la tâche quand ces paramètres manquent. Le survol indique cette provenance. Une donnée absente reste « non fourni » ; aucune valeur par défaut n’est inventée. Les tâches et indicateurs anciens continuent à fonctionner avec un relais antérieur, sans prétendre disposer de son point bleu.

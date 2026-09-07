@@ -7,6 +7,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../src/TaskFollowing.cs" Link="TaskFollowing.cs" />
+    <Compile Include="../src/QuotaAlerts.cs" Link="QuotaAlerts.cs" />
+    <Compile Include="../src/HistoryQuery.cs" Link="HistoryQuery.cs" />
+    <Compile Include="../src/ConnectionDiagnostics.cs" Link="ConnectionDiagnostics.cs" />
+
     <Compile Include="../src/BoundedCache.cs" Link="BoundedCache.cs" />
     <Compile Include="../src/TaskListProjection.cs" Link="TaskListProjection.cs" />
     <Compile Include="../src/ManualQuietMode.cs" Link="ManualQuietMode.cs" />

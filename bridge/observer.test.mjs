@@ -202,3 +202,20 @@ test('real pipe flow observes transitions, owner loss, transport loss and reconn
   assert.equal(observer.metrics.reconnects, 1);
   assert.ok(sent.filter(message => message.type === 'request').every(message => ['initialize', 'thread-owner-discovery'].includes(message.method)));
 });
+
+
+test('live model, effort and unread metadata are projected without prompts', async () => {
+  const { taskMetadata } = await import('./observer.mjs');
+  const raw=canonical([]); raw.latestModel='next-model'; raw.latestReasoningEffort='low'; raw.hasUnreadTurn=true;
+  raw.turnHistory.history.entitiesByKey['turn:1'].params={model:'gpt-6-astra',effort:'xhigh',input:[{text:'private prompt'}],collaborationMode:{settings:{model:'gpt-6-astra',reasoning_effort:'max',developer_instructions:'private instructions'}}};
+  let state=selectFields(raw); const metadata=taskMetadata(state);
+  assert.equal(metadata.model,'gpt-6-astra'); assert.equal(metadata.reasoningEffort,'max'); assert.equal(metadata.hasUnreadTurn,true);
+  assert.equal(JSON.stringify(state).includes('private'),false);
+  state=applyMetadataPatches(state,[{op:'replace',path:['hasUnreadTurn'],value:false},{op:'replace',path:['turnHistory','history','entitiesByKey','turn:1','params','collaborationMode','settings','reasoning_effort'],value:'ultra'}]);
+  assert.equal(taskMetadata(state).hasUnreadTurn,false); assert.equal(taskMetadata(state).reasoningEffort,'ultra');
+  state.turnHistory.history.entitiesByKey['turn:1'].params={model:'gpt-6-astra'};
+  assert.equal(taskMetadata(state).reasoningEffort,null, 'do not borrow the next execution effort');
+  state.turnHistory.history.islands[0].newerBoundary.status='unknown';
+  assert.equal(taskMetadata(state).model,'next-model'); assert.equal(taskMetadata(state).modelSource,'thread');
+  assert.equal(taskMetadata({}).hasUnreadTurn,null); assert.equal(taskMetadata({hasUnreadTurn:'true'}).hasUnreadTurn,null);
+});

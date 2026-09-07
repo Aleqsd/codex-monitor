@@ -13,7 +13,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
 
     internal void Draw()
     {
-        string[] tabs = ["Affichage", "Notifications", "Sons", "Connexion", "Apparence", "Visibilité"];
+        string[] tabs = ["Affichage", "Notifications", "Sons", "Connexion", "Apparence", "Visibilité", "Suivi"];
         for (var i = 0; i < tabs.Length; i++)
         {
             if (i > 0 && ImGui.GetItemRectMax().X - ImGui.GetWindowPos().X + ImGui.CalcTextSize(tabs[i]).X + 32 * ObsidianTheme.UiScale < ImGui.GetWindowWidth()) ImGui.SameLine();
@@ -28,6 +28,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
                 case 2: DrawSounds(); break;
                 case 4: DrawAppearance(); break;
                 case 5: DrawVisibility(); break;
+                case 6: DrawFollowing(); break;
                 default: DrawConnection(); break;
             }
         }
@@ -144,6 +145,8 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         Toggle("Une réponse est prête", c.NotifyOnIdle, value => c.NotifyOnIdle = value);
         Toggle("Une réponse attendue, une approbation ou une erreur", c.NotifyOnAttention, value => c.NotifyOnAttention = value);
         Toggle("Une question pendant que Codex continue", c.NotifyOnQuestions, value => c.NotifyOnQuestions = value);
+        Toggle("Regrouper les alertes rapprochées d’une tâche", c.GroupNotificationBursts, value => c.GroupNotificationBursts = value);
+        ImGui.TextWrapped("Regroupement sur 2 s. Les erreurs apparaissent immédiatement ; les alertes dépassées disparaissent.");
         ImGui.TextDisabled("Pas d’alerte à la première connexion ni à la reconnexion.");
         ImGui.Separator();
         ObsidianTheme.Section("Mettre les notifications en pause", "Les alertes reprennent après 2 s au calme, avec leur durée complète.");
@@ -229,6 +232,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
     {
         var snapshot = plugin.Snapshot;
         ObsidianTheme.Section(snapshot.Connected ? "Relais connecté" : "Relais déconnecté");
+        DrawDiagnostic();
         ImGui.TextWrapped(snapshot.Connected ? "Les tâches sont actualisées automatiquement depuis ce PC." : snapshot.Error ?? "Le relais local ne répond pas.");
         var relay = plugin.Relay.State;
         ImGui.BeginDisabled(relay.Busy || (snapshot.Connected && relay.Phase != RelayPhase.Running));
@@ -267,6 +271,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         if (ImGui.Combo("Période du HUD", ref period, new[] { "Semaine (par défaut)", "Période courte / 5 heures", "Période la plus limitante" }, 3))
         { plugin.Config.UsagePeriod = (UsagePreference)period; plugin.Save(); }
         ImGui.TextWrapped("Compte connecté au CLI Codex sur ce PC. Actualisation chaque minute. Une autre période épuisée est signalée par un astérisque rouge dans le HUD.");
+        DrawQuotaAlerts();
         if (snapshot.Connected && !snapshot.UsageTrackingSupported && snapshot.Usage is null)
             ImGui.TextWrapped("Le relais actif est ancien. Arrêter cette instance depuis son dossier, puis lancer le relais inclus avec ce plugin.");
         else if (snapshot.CurrentUsage is null) ImGui.TextWrapped("Le relais avec quota nécessite un CLI Codex installé et connecté au compte souhaité.");

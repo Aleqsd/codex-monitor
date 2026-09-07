@@ -20,7 +20,8 @@ function replyIds(text) {
 const content = { type: scalar, text: replyIds };
 const item = { id: scalar, type: scalar, delivery: scalar, status: scalar,
   text: hasText, questions: [{ title: hasText }], content: [content], input: [content] };
-const turn = { turnId: scalar, status: scalar, items: [item] };
+const turn = { turnId: scalar, status: scalar, items: [item],
+  params: { model: scalar, effort: scalar, collaborationMode: { settings: { model: scalar, reasoning_effort: scalar } } } };
 const fields = {
   requests: [{ id: value => typeof value === 'string' || typeof value === 'number' ? String(value).slice(0, 512) : null,
     method: scalar, params: { isBlocking: value => value === true, questions: [{ id: scalar }] } }],

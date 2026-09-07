@@ -70,7 +70,7 @@ internal static unsafe partial class Program
     {
         Initialize(800, 780, 1); UseEmojiTasks();
         for (var i = 0; i < 3; i++) Frame();
-        Click(743, 220);
+        Click(743, 255);
         SpinWait.SpinUntil(() => { lock (plugin.OpenedLinks) return plugin.OpenedLinks.Count == 1; }, 1000);
         if (plugin.OpenedLinks.Count != 1 || plugin.OpenedLinks[0].AbsoluteUri != $"codex://threads/{DemoId}") throw new Exception("Task row did not open the correct task.");
         FinishRevisionView();

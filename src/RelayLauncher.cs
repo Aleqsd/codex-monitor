@@ -176,7 +176,7 @@ internal sealed class RelayLauncher(string storageRoot) : IDisposable
         && path.Length > 3 && char.IsLetter(path[0]) && path[1] == ':' && !path[2..].Contains(':')
         && Path.GetFileName(path).Equals("node.exe", StringComparison.OrdinalIgnoreCase);
 
-    private static async Task ValidateNode(string node, CancellationToken token)
+    internal static async Task ValidateNode(string node, CancellationToken token)
     {
         var start = new ProcessStartInfo(node) { UseShellExecute = false, CreateNoWindow = true,
             WindowStyle = ProcessWindowStyle.Hidden, RedirectStandardOutput = true, RedirectStandardError = true };
@@ -184,7 +184,8 @@ internal sealed class RelayLauncher(string storageRoot) : IDisposable
         using var process = Process.Start(start) ?? throw new IOException("Node.js ne démarre pas.");
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(token); deadline.CancelAfter(TimeSpan.FromSeconds(5));
         var result = process.StandardOutput.ReadLineAsync(deadline.Token);
-        await process.WaitForExitAsync(deadline.Token);
+        try { await process.WaitForExitAsync(deadline.Token); }
+        catch (OperationCanceledException) { if (!process.HasExited) process.Kill(); throw; }
         if (process.ExitCode != 0 || !Version.TryParse((await result)?.Trim().TrimStart('v'), out var version) || version < new Version(22, 22, 2))
             throw new InvalidDataException("Mettre à jour Node.js : version 22.22.2 minimum.");
     }
