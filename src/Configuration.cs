@@ -23,7 +23,9 @@ public sealed class Configuration : IPluginConfiguration
     public bool NotifyOnIdle { get; set; } = true;
     public bool NotifyOnAttention { get; set; } = true;
     public bool NotifyOnQuestions { get; set; } = true;
-    public bool OpenOnLoad { get; set; } = true;
+    public bool OpenOnLoad { get; set; }
+    public VisibilityOptions? Visibility { get; set; }
+    public string RelayNodePath { get; set; } = "";
     public float NotificationSeconds { get; set; } = 7;
     public float NotificationScale { get; set; } = 1;
     public float NotificationAnchorX { get; set; } = 0.5f;
@@ -56,6 +58,10 @@ public sealed class Configuration : IPluginConfiguration
 
     public void Normalize()
     {
+        // Previous versions opened the window by default. Apply the new quiet startup once;
+        // later explicit opt-ins, appearance, anchors and history survive normalization.
+        if (Visibility is null) { Visibility = new VisibilityOptions(); OpenOnLoad = false; }
+        RelayNodePath = RelayNodePath?.Trim() ?? "";
         DismissedQuestions = QuestionDismissals.Clean(DismissedQuestions);
         Indicator = IndicatorOptions.Resolve(Indicator, ShowDtr, ShowMiniHud);
         if (!Enum.IsDefined(HudStyle)) HudStyle = MiniHudStyle.Capsule;

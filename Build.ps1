@@ -28,6 +28,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Les contrôles du relais ont échoué.' }
         & $Dotnet run --project 'tests\CoreChecks.csproj' -c Release --nologo
         if ($LASTEXITCODE -ne 0) { throw 'Les contrôles du client ont échoué. Le relais réel doit être lancé sur le port 43187.' }
+        & $Dotnet run --project 'tests\LauncherChecks\LauncherChecks.csproj' -c Release --nologo
+        if ($LASTEXITCODE -ne 0) { throw 'Les contrôles du lanceur local ont échoué.' }
     }
     $output = Join-Path $PSScriptRoot 'plugin'
     New-Item -ItemType Directory -Path $output -Force | Out-Null

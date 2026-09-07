@@ -4,6 +4,8 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/VisibilityOptions.cs" Link="VisibilityOptions.cs" />
+    <Compile Include="../../src/RelayLauncher.cs" Link="RelayLauncher.cs" />
     <Reference Include="Dalamud.Bindings.ImGui"><HintPath>$(DALAMUD_HOME)/Dalamud.Bindings.ImGui.dll</HintPath></Reference>
     <None Include="$(DALAMUD_HOME)/cimgui.dll" Link="cimgui.dll" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../../src/MainWindow.cs" Link="MainWindow.cs" />

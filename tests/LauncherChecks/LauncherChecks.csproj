@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType><TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/RelayLauncher.cs" Link="RelayLauncher.cs" />
+    <Compile Include="../../src/MonitorState.cs" Link="MonitorState.cs" />
+    <Compile Include="../../src/AccountUsage.cs" Link="AccountUsage.cs" />
+    <EmbeddedResource Include="fixture.mjs" LogicalName="CodexMonitor.Relay.bridge.mjs" />
+    <EmbeddedResource Include="empty.mjs" LogicalName="CodexMonitor.Relay.observer.mjs" />
+    <EmbeddedResource Include="empty.mjs" LogicalName="CodexMonitor.Relay.questions.mjs" />
+    <EmbeddedResource Include="empty.mjs" LogicalName="CodexMonitor.Relay.usage.mjs" />
+  </ItemGroup>
+</Project>

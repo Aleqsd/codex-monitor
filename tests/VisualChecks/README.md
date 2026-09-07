@@ -7,6 +7,8 @@ Pré requis : Windows, .NET 10.0.400 et les bibliothèques installées de Dalamu
 ```powershell
 $env:DALAMUD_HOME = "$env:APPDATA\XIVLauncher\addon\Hooks\15.0.3.2"
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release -- artifacts/visual
+dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --visibility-smoke
+dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --visibility-preview artifacts/visibility
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --readme-previews artifacts/readme
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --revision-smoke
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --revision-preview artifacts/revision

@@ -4,7 +4,15 @@ Le relais suit les tâches de Codex sur ce PC et fournit leurs états au plugin 
 
 ## Première installation
 
-Prérequis : Windows, Node.js 22.22.2 et Codex ouvert. Aucun paquet npm propre au relais. Le quota demande aussi un CLI Codex installé et connecté.
+Prérequis : Windows, Node.js 22.22.2 minimum et Codex ouvert. Aucun paquet npm propre au relais. Le quota demande aussi un CLI Codex installé et connecté.
+
+Avec Codex Monitor **0.7.0 ou plus récent**, ouvrir `/codex config` → **Connexion** → **Lancer le relais**. Les quatre scripts MIT de ce dépôt sont inclus dans la DLL. Le plugin les extrait au clic dans son dossier de configuration Dalamud, sous `CodexMonitor/relay/bridge/<empreinte>/`, puis lance Node.js en arrière-plan. Aucune console, aucun téléchargement et aucun démarrage automatique. Node.js est détecté dans son emplacement Windows habituel ou dans le PATH ; son chemin peut être indiqué dans « Node.js introuvable ? ».
+
+**Arrêter mon relais** arrête uniquement l’instance créée par le plugin. Elle est également arrêtée au déchargement du plugin ; une surveillance du processus parent est prévue pour la fermeture du jeu. Chaque lancement possède son dossier `relay/runtime/<identifiant>/` et son signal d’arrêt. Un relais préexistant est conservé et reste géré séparément. Un port occupé par un service non reconnu bloque le lancement.
+
+Les scripts sont embarqués, **pas Node.js ni le CLI Codex**. Les données `runtime/` restent privées. Les copies extraites sont identifiées par leur contenu ; une copie modifiée est refusée. Aucun accès réseau ou disque ne se fait dans le dessin ImGui.
+
+## Lancement séparé, facultatif
 
 Télécharger le ZIP complet de la [dernière release Codex Monitor](https://github.com/Aleqsd/codex-monitor/releases), puis l’extraire dans un dossier durable de ton choix, hors des dossiers de plugins gérés par Dalamud. Le sous-dossier `bridge/` contient le relais ; il conserve ses fichiers `runtime/` localement.
 
@@ -18,7 +26,7 @@ Il écoute sur `127.0.0.1:43187`. `Stop-Bridge.ps1` l’arrête et `Show-Status.
 
 ## Mises à jour
 
-Si le relais fonctionne déjà, il peut rester lancé. Dalamud installe et met à jour uniquement le plugin ; le relais se met à jour séparément lorsqu’une release le demande. Dans ce cas, arrêter l’ancienne instance avec son `Stop-Bridge.ps1`, préparer le nouveau dossier et lancer son `Start-Bridge.ps1`. Garder une seule instance et ne pas déplacer un dossier dont le relais tourne encore.
+Si le relais fonctionne déjà, il peut rester lancé. Une mise à jour du plugin apporte les scripts intégrés pour son prochain lancement manuel. Pour un relais lancé séparément, arrêter l’ancienne instance avec son `Stop-Bridge.ps1`, puis utiliser le bouton du plugin ou le nouveau dossier externe. Garder une seule instance et ne pas déplacer un dossier dont le relais tourne encore.
 
 Le script optionnel `Activer-Quota.ps1` peut remplacer un ancien relais reconnu dans une livraison voisine. Il refuse de modifier un processus inconnu. Sa syntaxe est vérifiée ; sa bascule automatique reste non validée en conditions réelles. L’arrêt et le démarrage séparés sont disponibles.
 

@@ -8,7 +8,9 @@ Windows, .NET SDK 10.0.400 et bibliothèques Dalamud 15 sont nécessaires. `glob
 .\Build.ps1 -DalamudHome "$env:APPDATA\XIVLauncher\addon\Hooks\15.0.3.2" -RunChecks
 ```
 
-Le contrôle de connexion réel nécessite un relais déjà actif sur le port 43187. Le script ne démarre pas un second relais. Le résultat se trouve dans `plugin/` : DLL, manifeste et fichier `.deps.json`.
+Le contrôle de connexion réel nécessite un relais déjà actif sur le port 43187. Le script ne démarre pas un second relais réel. Les tests du lanceur utilisent un service Node fictif sur un port libre, sans accès à Codex. Le résultat se trouve dans `plugin/` : DLL (avec les quatre scripts du relais), manifeste et fichier `.deps.json`.
+
+Si le port 43187 est libre, le contrôle explicitement demandé `dotnet run --project tests/CoreChecks.csproj -c Release -- --launch-live` lance les vrais scripts intégrés pour la durée du test et les arrête ensuite. Il refuse un port déjà occupé. Les traces restent dans `artifacts/`, ignoré par Git.
 
 [Contrôles visuels hors jeu](../tests/VisualChecks/README.md).
 
@@ -16,7 +18,7 @@ Le contrôle de connexion réel nécessite un relais déjà actif sur le port 43
 
 Désactiver la copie installée de Codex Monitor avant un essai local. Dans `/xlsettings`, ajouter le chemin de `plugin/CodexMonitor.dll` à **Dev Plugin Locations**, puis activer le plugin dans `/xlplugins`. Garder les deux fichiers JSON près de la DLL, la configuration existante et une seule copie chargée.
 
-Pour revenir à l’installation normale, désactiver cette copie de développement et retirer uniquement son entrée, puis installer depuis le [dépôt personnalisé](../README.md#installation). Le [relais](../bridge/README.md) reste dans son dossier durable séparé.
+Pour revenir à l’installation normale, désactiver cette copie de développement et retirer uniquement son entrée, puis installer depuis le [dépôt personnalisé](../README.md#installation). Le [relais intégré](../bridge/README.md) utilise le dossier de configuration du plugin ; un relais externe conserve son propre dossier.
 
 ## Architecture
 
@@ -32,7 +34,7 @@ Les couleurs sémantiques restent centralisées dans `ObsidianTheme`, dont le no
 
 ## Polices et licences
 
-Le code de ce dépôt est sous licence MIT. Les sons intégrés sont synthétisés par le plugin. Les images de démonstration sont des rendus des composants réels avec données fictives.
+Le code de ce dépôt, y compris les quatre scripts du relais embarqués dans la DLL, est sous licence MIT et a été développé avec l’aide substantielle de Codex. Node.js et le CLI restent des prérequis externes. Les sons intégrés sont synthétisés par le plugin. Les images de démonstration sont des rendus des composants réels avec données fictives.
 
 Aucun fichier de police, asset de jeu, capture LMeter ou binaire tiers n’est distribué. Expressway est recherchée par nom de fichier dans les dossiers de polices Windows et utilisateur ; un autre emplacement peut être choisi via « Fichier local ». Segoe UI reste aussi un choix local. Si la police est absente ou ne se charge pas, Dalamud sert de repli. Le sélecteur montre ce statut.
 

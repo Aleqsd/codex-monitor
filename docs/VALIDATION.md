@@ -1,31 +1,29 @@
-# Validation 0.6.1
+# Validation 0.7.0
 
 Prérelease expérimentale. Vérifications locales le 7 septembre 2026 sur Windows, Dalamud 15.0.3.2, .NET SDK 10.0.400 et Node.js 22.22.2.
 
-- Compilation sans erreur ni avertissement ; 141 contrôles C# et 20 tests Node passent, avec lecture du relais réel.
-- Les 17 nouveaux contrôles logiques couvrent le masquage exact d’une question, la persistance, les nouvelles questions, les interventions bloquantes, les compteurs, l’historique, les notifications et la restauration silencieuse.
-- 32 interactions ImGui hors jeu passent : 13 pour questions/design/texte, 6 pour navigation et indicateurs, 5 pour le HUD, 2 pour ses animations et 6 pour son fond.
-- Le sérialiseur Newtonsoft.Json installé dans Dalamud valide les anciens champs, les nouveaux choix et leur rechargement ; 18 contrôles d’apparence/géométrie et les contrôles de migration du fond passent également.
-- Le panneau de connexion est identique pixel par pixel après modification de la police, taille, couleur, transparence et marges de l’ancien champ `WindowAppearance`, ainsi que des thèmes HUD/notifications. La personnalisation des données ne déborde plus sur les réglages.
-- 74 images sont produites depuis les composants réels : 32 vues de cette évolution et 42 vues générales, avec données fictives, largeur minimale et échelles 100/150/200 %. Le bas du formulaire de design reste accessible par défilement.
-- Le vrai composant de notification conserve sa durée complète après un combat simulé, y compris après une brève sortie de combat.
-
-Les rendus utilisent les composants C# réels et un rasteriseur CPU des triangles ImGui. Les services hôtes sont simulés, avec Segoe UI et Consolas installées localement. Ils ne constituent pas un essai dans FF14.
+- 157 contrôles C# : masquage selon le contexte, absence de rattrapage après l’écran titre, reprise complète des notifications, questions, historique, quota, géométrie et animations.
+- Le vrai relais intégré a été extrait et lancé depuis le lanceur C#, sur le port 43187 préalablement libre. Le parseur du plugin a reçu les états de Codex ; l’arrêt coopératif a ensuite libéré le port. Aucun autre relais n’a été arrêté.
+- 14 contrôles du lanceur utilisent Node.js et un service fictif isolé, sans accès à Codex : double clic, chemins avec espaces/apostrophe, relais déjà actif même sans Codex connecté, conservation d’une instance externe, arrêt, relance, déchargement, port occupé, Node absent et copie de scripts modifiée.
+- 20 tests Node couvrent le protocole local, les questions et le lecteur de quota.
+- 4 interactions ImGui natives couvrent les options de visibilité et leur réinitialisation. 4 contrôles avec le sérialiseur Newtonsoft.Json installé dans Dalamud vérifient la migration et la persistance des choix explicites.
+- Les 13 interactions de régression questions/design passent, ainsi que l’égalité pixel par pixel des réglages après personnalisation des autres surfaces.
+- 8 aperçus des panneaux Visibilité et Connexion sont générés depuis les composants réels, à largeur minimale et aux échelles 100/150/200 %. Les contrôles du bas restent accessibles par défilement.
 
 ## Limites
 
-La DLL 0.6.1 n’a pas été chargée ou testée en jeu pendant cette validation. Le cycle de vie des polices via l’atlas géré de Dalamud reste à vérifier pendant une session. Expressway est absente de l’environnement de test : le repli est montré, son fichier n’est ni testé ni distribué.
+Cette DLL 0.7.0 n’a pas été chargée dans FF14 pendant cette validation. Les services Dalamud de connexion, cinématiques, mode photo et instances sont reliés dans le code compilé ; leurs transitions réelles restent à vérifier en jeu. Les images et interactions ImGui utilisent des services hôtes simulés et des données fictives.
 
-Le masquage d’une question est uniquement local à FF14. Il ne la résout pas dans Codex et ne masque pas une demande bloquante. Le relais conserve son fonctionnement ; aucune mise à jour ou relance du relais 0.6.0 n’est nécessaire pour cette version.
+L’arrêt coopératif est testé avec le vrai relais hors jeu ; l’appel Dispose du lanceur est testé avec le service fictif. Le relais intégré surveille aussi l’existence du processus parent, mais la fermeture brutale de FF14 n’a pas été provoquée pour ce test. Node.js et le CLI Codex restent externes ; aucun runtime ni identifiant de compte n’est inclus dans la DLL.
 
-Le protocole interne de Codex Windows peut évoluer. Le plugin ne lance, n’interrompt, ne répond et n’approuve aucune tâche.
+La migration désactive une seule fois l’ancien défaut d’ouverture automatique. Elle conserve les couleurs, positions, historiques et autres préférences ; une réactivation explicite ultérieure reste enregistrée. Le masquage hors jeu abandonne les alertes différées, tandis qu’un masquage temporaire en jeu les reporte avec leur durée complète.
 
-## Images
+Le protocole interne de Codex peut évoluer. Le plugin ne lance, n’interrompt, ne répond et n’approuve aucune tâche. Le compte du quota reste celui du CLI. Les limites absentes ou périmées restent inconnues.
 
-![Liste et action de question](images/tasks.png)
+## Aperçus
 
-![Design des notifications](images/appearance.png)
+![Règles de visibilité](images/visibility.png)
 
-![Formats du HUD](images/hud.png)
+![Lancement du relais intégré](images/connection.png)
 
-Aperçus ImGui hors jeu avec données fictives.
+Rendus ImGui hors jeu, avec des données fictives.

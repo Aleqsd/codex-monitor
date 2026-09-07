@@ -5,9 +5,11 @@ using CodexMonitor;
 
 var id = Guid.NewGuid().ToString();
 var now = DateTimeOffset.UtcNow;
+await using var liveLaunch = args.Contains("--launch-live") ? await LiveRelayCheck.Start() : null;
 if (args.Contains("--quiet-return-checks")) { Console.WriteLine($"{QuietReturnChecks.Run()} quiet-return checks passed."); return; }
 if (args.Contains("--hud-motion-checks")) { Console.WriteLine($"{HudMotionChecks.Run()} HUD motion checks passed."); return; }
 var checks = 0;
+checks += VisibilityChecks.Run();
 checks += QuestionDismissalChecks.Run();
 void Check(bool value, string message) { if (!value) throw new Exception(message); checks++; Console.WriteLine($"PASS {message}"); }
 string Payload(string state = "active", bool connected = true, int version = 1, int generatedAge = 0, int confirmedAge = 0) => JsonSerializer.Serialize(new

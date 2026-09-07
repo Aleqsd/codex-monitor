@@ -42,6 +42,7 @@ namespace CodexMonitor
         internal NotificationCenter Center { get; }
         internal MiniHud Hud { get; }
         internal NotificationSounds Sounds { get; } = new();
+        internal RelayLauncher Relay { get; } = new(Path.Combine(Path.GetTempPath(), "codex-monitor-visual-unused"));
         internal int SaveCount;
         internal int OpenCount;
         internal Plugin()

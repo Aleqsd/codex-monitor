@@ -22,11 +22,13 @@ https://raw.githubusercontent.com/Aleqsd/dalamud-plugins/main/repo.json
 
 Si tu utilisais une DLL de développement, désactive cette copie et retire uniquement son entrée de **Dev Plugin Locations** avant l’installation. Conserve tes fichiers de configuration et une seule copie chargée.
 
-Le [relais local se prépare et se lance séparément](bridge/README.md#première-installation), dans un dossier durable hors des dossiers de plugins Dalamud. Il nécessite Node.js 22.22.2 et Codex ouvert ; le quota demande aussi le CLI Codex connecté. Si ton relais fonctionne déjà, garde-le lancé. Une mise à jour Dalamud ne met pas le relais à jour.
+À partir de la version **0.7.0**, ouvrir **Réglages → Connexion → Lancer le relais**. Les scripts du relais sont inclus dans le plugin ; Node.js 22.22.2 minimum et Codex restent nécessaires, ainsi qu’un CLI Codex connecté pour le quota. Le démarrage est manuel, sans fenêtre PowerShell. Un relais déjà actif peut rester lancé. [Fonctionnement et lancement séparé](bridge/README.md).
 
 ## Utilisation
 
 `/codex` ouvre les tâches. `/codex config` règle le HUD, les notifications, les sons et l’apparence. `/codex preview` place les notifications.
+
+La fenêtre reste fermée au chargement. Dans **Réglages → Visibilité**, choisir quand masquer le plugin : écran titre, chargements, cinématiques et mode photo par défaut ; combats et instances en option. Les alertes de l’écran titre ne sont pas rejouées à la connexion.
 
 Cliquer sur une tâche avec un « ? » permet de masquer sa question dans FF14 ou de la réafficher. Les nouvelles questions restent signalées.
 

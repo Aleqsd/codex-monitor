@@ -13,7 +13,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
 
     internal void Draw()
     {
-        string[] tabs = ["Affichage", "Notifications", "Sons", "Connexion", "Apparence"];
+        string[] tabs = ["Affichage", "Notifications", "Sons", "Connexion", "Apparence", "Visibilité"];
         for (var i = 0; i < tabs.Length; i++)
         {
             if (i > 0 && ImGui.GetItemRectMax().X - ImGui.GetWindowPos().X + ImGui.CalcTextSize(tabs[i]).X + 32 * ObsidianTheme.UiScale < ImGui.GetWindowWidth()) ImGui.SameLine();
@@ -27,6 +27,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
                 case 1: DrawNotifications(); break;
                 case 2: DrawSounds(); break;
                 case 4: DrawAppearance(); break;
+                case 5: DrawVisibility(); break;
                 default: DrawConnection(); break;
             }
         }
@@ -86,7 +87,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         ObsidianTheme.Section("Liste des tâches");
         Toggle("Afficher les tâches au repos", config.ShowIdle, value => config.ShowIdle = value);
         Toggle("Inclure les tâches non observées", config.ShowUnobserved, value => config.ShowUnobserved = value);
-        Toggle("Ouvrir la fenêtre au chargement", config.OpenOnLoad, value => config.OpenOnLoad = value);
+        if (ImGui.Button("Quand afficher le plugin…")) Category = 5;
     }
 
     private void DrawHudAppearance()
@@ -229,9 +230,30 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         var snapshot = plugin.Snapshot;
         ObsidianTheme.Section(snapshot.Connected ? "Relais connecté" : "Relais déconnecté");
         ImGui.TextWrapped(snapshot.Connected ? "Les tâches sont actualisées automatiquement depuis ce PC." : snapshot.Error ?? "Le relais local ne répond pas.");
+        var relay = plugin.Relay.State;
+        ImGui.BeginDisabled(relay.Busy || (snapshot.Connected && relay.Phase != RelayPhase.Running));
+        if (relay.Phase == RelayPhase.Running)
+        {
+            if (ImGui.Button("Arrêter mon relais")) plugin.Relay.Stop();
+        }
+        else if (ImGui.Button(relay.Busy ? "Veuillez patienter…" : snapshot.Connected ? "Relais déjà connecté" : "Lancer le relais")) plugin.Relay.Start(plugin.Config.Port, plugin.Config.RelayNodePath);
+        ImGui.EndDisabled();
+        ImGui.TextWrapped(snapshot.Connected && relay.Phase == RelayPhase.Ready
+            ? "Le relais actuel est géré séparément. Il peut rester actif." : relay.Message);
+        ImGui.TextWrapped("Node.js 22.22.2 minimum et Codex sur ce PC. Aucun lancement automatique.");
+        if (ImGui.CollapsingHeader("Node.js introuvable ?"))
+        {
+            var node = plugin.Config.RelayNodePath;
+            ImGui.SetNextItemWidth(Math.Max(100, ImGui.GetContentRegionAvail().X));
+            if (ImGui.InputTextWithHint("##relay-node", @"C:\Program Files\nodejs\node.exe", ref node, 1024)) plugin.Config.RelayNodePath = node;
+            if (ImGui.IsItemDeactivatedAfterEdit()) plugin.Save();
+            ImGui.TextWrapped("Chemin facultatif vers node.exe. Vide : détection automatique. Le relais lui-même est fourni avec le plugin.");
+        }
         var port = plugin.Config.Port;
+        ImGui.BeginDisabled(relay.Busy || relay.Phase == RelayPhase.Running);
         ImGui.SetNextItemWidth(180 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputInt("Port local", ref port) && port is >= 1 and <= 65535) { plugin.Config.Port = port; plugin.Save(); }
+        ImGui.EndDisabled();
         ImGui.TextDisabled("127.0.0.1 · Actualisation toutes les 2 secondes");
         if (snapshot.Connected && !snapshot.QuestionTrackingSupported)
             ImGui.TextWrapped("Pour repérer les questions sans pause, lancer le relais fourni avec la version 0.4.0.");
@@ -245,8 +267,29 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         ImGui.Separator();
         ObsidianTheme.Section("Raccourcis");
         ImGui.TextUnformatted("/codex          Ouvrir les tâches\n/codex history  Consulter l’historique\n/codex preview  Placer les notifications\n/codex hud      Basculer Mini HUD / texte");
-        ImGui.Spacing(); ImGui.TextDisabled("Codex Monitor 0.6.1 · Aleqsd");
-        ImGui.TextWrapped(typeof(Configuration).Assembly.Location);
+        ImGui.Spacing(); ImGui.TextDisabled("Codex Monitor 0.7.0 · Aleqsd");
+        if (ImGui.CollapsingHeader("Informations techniques")) ImGui.TextWrapped(typeof(Configuration).Assembly.Location);
+    }
+
+    private void DrawVisibility()
+    {
+        var config = plugin.Config; var visibility = config.Visibility!;
+        ObsidianTheme.Section("Un affichage discret", "Ces règles masquent la fenêtre, le mini HUD, le texte de barre et les notifications.");
+        Toggle("Écran titre et sélection du personnage", visibility.HideOutsideGame, value => visibility.HideOutsideGame = value);
+        Toggle("Écrans de chargement", visibility.HideWhileLoading, value => visibility.HideWhileLoading = value);
+        Toggle("Cinématiques", visibility.HideInCutscenes, value => visibility.HideInCutscenes = value);
+        Toggle("Mode photo / gpose", visibility.HideInGpose, value => visibility.HideInGpose = value);
+        Toggle("Combats", visibility.HideInCombat, value => visibility.HideInCombat = value);
+        Toggle("Instances et donjons", visibility.HideInDuty, value => visibility.HideInDuty = value);
+        ImGui.Spacing();
+        ImGui.TextWrapped("L’interface masquée avec Arrêt défil. reste respectée. En jeu, les alertes attendent le retour au calme. Celles de l’écran titre ne sont pas rejouées à la connexion.");
+        ImGui.Separator();
+        ObsidianTheme.Section("Fenêtre principale");
+        Toggle("Ouvrir automatiquement après le chargement du plugin", config.OpenOnLoad, value => config.OpenOnLoad = value);
+        ImGui.TextWrapped("Désactivé par défaut. Si activé, attend un personnage connecté et un contexte visible. La fenêtre se ferme à la déconnexion.");
+        ImGui.TextWrapped("Les tâches et réglages restent accessibles à la demande avec /codex ou le bouton Dalamud, même si l’indicateur est masqué.");
+        if (ImGui.Button("Rétablir la visibilité par défaut"))
+        { config.Visibility = new VisibilityOptions(); config.OpenOnLoad = false; plugin.Save(); }
     }
 
     private void Toggle(string label, bool value, Action<bool> set)

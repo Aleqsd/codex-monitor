@@ -1,6 +1,6 @@
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
   <PropertyGroup>
-    <Version>0.6.1.0</Version>
+    <Version>0.7.0.0</Version>
     <AssemblyName>CodexMonitor</AssemblyName>
     <Author>Aleqsd</Author>
     <Name>Codex Monitor</Name>
@@ -14,4 +14,7 @@
     <Use_Dalamud_MSObjectPool>false</Use_Dalamud_MSObjectPool>
     <Use_Dalamud_Serilog>false</Use_Dalamud_Serilog>
   </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../bridge/bridge.mjs;../bridge/observer.mjs;../bridge/questions.mjs;../bridge/usage.mjs" LogicalName="CodexMonitor.Relay.%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

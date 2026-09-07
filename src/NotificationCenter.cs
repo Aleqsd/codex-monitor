@@ -67,6 +67,14 @@ public sealed class NotificationCenter(NotificationHistory history, Notification
     public bool IsQuiet { get; private set; }
     public int DeferredCount => deferred.Count;
 
+    public void Suspend(MonitorSnapshot snapshot)
+    {
+        previous = snapshot;
+        deferred.Clear();
+        queue.Clear();
+        IsQuiet = wasQuiet = true;
+    }
+
     // Restoring a local display choice must not replay an old question or hide other transitions.
     public void RestoreQuestions(string threadId, string[] restoredIds)
     {

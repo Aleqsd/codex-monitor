@@ -13,7 +13,8 @@ const once = args.includes('--once');
 const duration = Number(value('--duration', once ? '8' : '0'));
 const port = Number(value('--port', '43187'));
 const limit = Number(value('--limit', '20'));
-if (!Number.isInteger(port) || port < 1 || port > 65535 || !Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isFinite(duration) || duration < 0) {
+const parentPid = Number(value('--parent-pid', '0'));
+if (!Number.isSafeInteger(parentPid) || parentPid < 0 || !Number.isInteger(port) || port < 1 || port > 65535 || !Number.isInteger(limit) || limit < 1 || limit > 100 || !Number.isFinite(duration) || duration < 0) {
   throw new Error('Invalid --port, --limit, or --duration');
 }
 const codexRoot = path.resolve(value('--codex-home', process.env.CODEX_HOME || path.join(os.homedir(), '.codex')));
@@ -69,6 +70,11 @@ const refreshTimer = setInterval(async () => {
   catch (error) { observer.lastError = `Catalog read failed: ${error.message}`; observer.emit('change'); }
 }, 10000);
 const stopTimer = setInterval(() => { if (existsSync(stopFile)) shutdown(); }, 500);
+// A game crash cannot leave the plugin-owned relay running indefinitely. Signal 0 only checks existence.
+const parentTimer = parentPid ? setInterval(() => {
+  try { process.kill(parentPid, 0); }
+  catch (error) { if (error.code === 'ESRCH') shutdown(); }
+}, 1000) : null;
 
 const server = once ? null : createServer((req, res) => {
   if (req.headers.host !== `127.0.0.1:${port}` && req.headers.host !== `localhost:${port}`) { res.writeHead(403); res.end(); return; }
@@ -88,6 +94,7 @@ function shutdown() {
   stopping = true;
   clearInterval(refreshTimer);
   clearInterval(stopTimer);
+  clearInterval(parentTimer);
   clearTimeout(saveTimer);
   if (once) console.log(JSON.stringify(snapshot(), null, 2));
   usage.stop();

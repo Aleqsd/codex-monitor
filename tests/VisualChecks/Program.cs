@@ -27,6 +27,8 @@ internal static unsafe partial class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--visibility-preview")) { VisibilityPreview(args.Last()); return; }
+        if (args.Contains("--visibility-smoke")) { VisibilityMigration(); return; }
         if (args.Contains("--readme-previews")) { ReadmePreviews(args.Last()); return; }
         if (args.Contains("--revision-preview")) { RevisionPreview(args.Last()); return; }
         if (args.Contains("--revision-smoke")) { RevisionSmoke(); return; }
