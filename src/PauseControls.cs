@@ -5,10 +5,12 @@ namespace CodexMonitor;
 
 internal static class PauseControls
 {
+    internal static void Activate(Plugin plugin)
+    { if (plugin.ManualQuiet.Enabled) plugin.ResumeAlerts(); else ImGui.OpenPopup("pause-menu"); }
     internal static void Button(Plugin plugin)
     {
         if (ImGui.Button(plugin.ManualQuiet.Enabled ? "Reprendre" : "Ne pas déranger"))
-        { if (plugin.ManualQuiet.Enabled) plugin.ResumeAlerts(); else ImGui.OpenPopup("pause-menu"); }
+            Activate(plugin);
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(plugin.PauseDescription);
         Menu(plugin);
     }
@@ -16,19 +18,24 @@ internal static class PauseControls
     {
         ImGui.SetCursorScreenPos(p);
         if (ImGui.InvisibleButton("pause-button", new Vector2(size)))
-        { if (plugin.ManualQuiet.Enabled) plugin.ResumeAlerts(); else ImGui.OpenPopup("pause-menu"); }
+            Activate(plugin);
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right)) ImGui.OpenPopup("pause-menu");
-        var hovered = ImGui.IsItemHovered(); var draw = ImGui.GetWindowDrawList();
+        var hovered = ImGui.IsItemHovered();
         var paused = plugin.ManualQuiet.Enabled || plugin.Center.IsQuiet;
-        var color = ObsidianTheme.U(paused ? ObsidianTheme.Amber : ObsidianTheme.Muted);
-        draw.AddRectFilled(p, p + new Vector2(size), ObsidianTheme.U(hovered ? ObsidianTheme.Line : ObsidianTheme.Surface), size * .18f);
+        DrawIcon(ImGui.GetWindowDrawList(), p, size, paused, hovered);
+        if (hovered) { ImGui.SetMouseCursor(ImGuiMouseCursor.Hand); ImGui.SetTooltip(plugin.PauseDescription + "\n" + (plugin.ManualQuiet.Enabled ? "Cliquer pour reprendre · Clic droit pour prolonger" : "Cliquer pour choisir une durée")); }
+        Menu(plugin);
+    }
+    internal static void DrawIcon(ImDrawListPtr draw, Vector2 p, float size, bool paused, bool hovered = false, float opacity = 1)
+    {
+        var tint = paused ? ObsidianTheme.Amber : ObsidianTheme.Muted; tint.W *= opacity;
+        var color = ObsidianTheme.U(tint);
+        if (hovered) { var fill = ObsidianTheme.Line; fill.W *= opacity; draw.AddRectFilled(p, p + new Vector2(size), ObsidianTheme.U(fill), size * .18f); }
         Vector2 At(float x, float y) => p + new Vector2(x, y) * size / 24;
         draw.AddLine(At(7, 15), At(8, 8), color, size / 16); draw.AddLine(At(8, 8), At(12, 6), color, size / 16);
         draw.AddLine(At(12, 6), At(16, 8), color, size / 16); draw.AddLine(At(16, 8), At(17, 15), color, size / 16);
         draw.AddLine(At(6, 16), At(18, 16), color, size / 16); draw.AddCircleFilled(At(12, 19), size / 16, color);
         if (paused) draw.AddLine(At(4, 4), At(20, 20), color, size / 14);
-        if (hovered) { ImGui.SetMouseCursor(ImGuiMouseCursor.Hand); ImGui.SetTooltip(plugin.PauseDescription + "\n" + (plugin.ManualQuiet.Enabled ? "Cliquer pour reprendre · Clic droit pour prolonger" : "Cliquer pour choisir une durée")); }
-        Menu(plugin);
     }
     internal static void Menu(Plugin plugin)
     {

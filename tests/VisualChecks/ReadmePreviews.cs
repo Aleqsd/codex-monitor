@@ -10,7 +10,7 @@ internal static unsafe partial class Program
         Directory.CreateDirectory(output);
         foreach (var notifications in new[] { false, true })
         {
-            Initialize(notifications ? 680 : 940, notifications ? 850 : 600, 1);
+            Initialize(notifications ? 680 : 940, notifications ? 850 : 640, 1);
             for (var frame = 0; frame < 3; frame++)
             {
                 ImGui.NewFrame(); ObsidianTheme.Push(ObsidianTheme.Chrome);
@@ -53,8 +53,6 @@ internal static unsafe partial class Program
                         var appearance = new HudAppearance(); appearance.ApplyPreset(MonitorSkin.Obsidienne, AppearanceTarget.Hud);
                         MiniHud.DrawFace(p + new Vector2(0, 28), MiniHudOptions.Size(style, true, appearance) * 1.25f,
                             snapshot, false, false, 1, style, true, appearance: appearance);
-                        var faceSize = MiniHudOptions.Size(style, true, appearance) * 1.25f;
-                        PauseControls.Icon(plugin, p + new Vector2(faceSize.X + 5, 28 + Math.Max(0, (faceSize.Y - 30) / 2)), 30);
                         ImGui.PopID();
                     }
                 }
@@ -79,7 +77,6 @@ internal static unsafe partial class Program
                 var size=MiniHudOptions.Size(style,true,plugin.Config.HudAppearance)*1.25f;
                 var p=new Vector2(24,y+24);
                 MiniHud.DrawFace(p,size,plugin.Snapshot,false,false,1,style,true,appearance:plugin.Config.HudAppearance,pinnedTaskId:DemoId);
-                PauseControls.Icon(plugin,p+new Vector2(size.X+5,Math.Max(0,(size.Y-30)/2)),30);
                 y+=size.Y+51;ImGui.PopID();
             }
             ImGui.End();ObsidianTheme.Pop();ImGui.Render();

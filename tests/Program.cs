@@ -341,7 +341,7 @@ Check(MonitorContract.Parse(JsonSerializer.Serialize(quotaRoot), now).Active == 
 Check(TransitionDetector.Find(live, live with { Usage = account }, true, true).Count == 0, "Quota refresh never triggers a task notification");
 foreach (var style in Enum.GetValues<MiniHudStyle>())
 {
-    var hudBase=MiniHudOptions.Size(style,true)+new Vector2(30,0);
+    var hudBase=MiniHudOptions.Size(style,true);
     var hudSize = hudBase*MiniHudOptions.FitScale(hudBase,1.5f,new Vector2(560,490));
     var pos = NotificationGeometry.Place(new Vector2(1, 1), Vector2.Zero, new Vector2(560, 490), hudSize, 0, 1, 0);
     Check(pos.X >= 0 && pos.Y >= 0 && pos.X + hudSize.X <= 560 && pos.Y + hudSize.Y <= 490, $"{style} stays inside viewport at 150% and edge anchor");

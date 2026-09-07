@@ -61,6 +61,7 @@ namespace CodexMonitor
         internal void StopRelay() => AutoRelay.ManualStop();
         internal int SaveCount;
         internal int OpenCount;
+        internal bool ConfigOpened;
         internal readonly List<Uri> OpenedLinks = new();
         internal CodexTaskLink TaskLink { get; }
         internal Plugin()
@@ -69,7 +70,7 @@ namespace CodexMonitor
             Config.Normalize();
             NotificationUi = new NotificationOverlay(Config, Save, _ => { OpenCount++; }, TaskLink);
             Center = new NotificationCenter(History, NotificationUi.Queue);
-            Hud = new MiniHud(this, () => { OpenCount++; });
+            Hud = new MiniHud(this, () => { OpenCount++; ConfigOpened = true; });
             History.Add(Snapshot.Threads[3], DateTimeOffset.Now.AddMinutes(-3));
             History.Add(Snapshot.Threads[1], DateTimeOffset.Now);
         }

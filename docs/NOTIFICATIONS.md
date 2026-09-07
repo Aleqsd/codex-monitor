@@ -109,6 +109,6 @@ Le modèle et l’effort affichés proviennent en priorité des paramètres de l
 
 Ruban, Focus et Tâche épinglée complètent les six formats existants. Focus est le défaut des nouvelles installations ; les préférences déjà sauvegardées sont conservées. Le menu d’une tâche peut choisir le format épinglé et la tâche suivie en une action.
 
-Le clic sur un compteur ouvre un aperçu près du HUD. La liste complète et l’ouverture explicite de la tâche dans Codex restent accessibles. L’aperçu se ferme au clic extérieur et respecte les bords de l’écran. La préférence HUD permet de retrouver l’ouverture directe de la liste.
+Le clic sur un compteur ouvre un aperçu près du HUD. La liste complète et l’ouverture explicite de la tâche dans Codex restent accessibles. L’aperçu se ferme au clic extérieur et respecte les bords de l’écran. Depuis la 0.11.1, le clic sur le HUD ouvre les réglages par défaut. L’aperçu des tâches est un choix facultatif dans « Au clic sur le HUD ». La cloche reste intégrée dans chaque format et utilise sa propre zone de clic.
 
 La réponse non lue est bleue, l’activité neutre, l’intervention ambre et l’erreur rouge. Le titre de la notification passe avant l’événement. Un extrait de question est limité à deux lignes ; un ancien relais ou une question sans titre structuré conserve l’affichage sans extrait. Résoudre ou masquer la question retire aussi son extrait.

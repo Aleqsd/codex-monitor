@@ -70,7 +70,7 @@ public sealed class Plugin : IDalamudPlugin
         History = new NotificationHistory(Config.NotificationHistory);
         NotificationUi = new NotificationOverlay(Config, Save, OnNotificationClick, TaskLink);
         Center = new NotificationCenter(History, NotificationUi.Queue, state => Sounds.Play(state, Config.Sounds));
-        Hud = new MiniHud(this, OpenMain);
+        Hud = new MiniHud(this, OpenConfig);
         client = new BridgeClient(Config.Port);
         main = new MainWindow(this) { IsOpen = false };
         pendingOpen = Config.OpenOnLoad;

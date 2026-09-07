@@ -33,11 +33,11 @@ Si tu utilisais une DLL de développement, désactiver cette copie et retirer un
 
 ![Ruban, Focus et Tâche épinglée](docs/images/new-huds.png)
 
-Cliquer sur un compteur ouvre un petit aperçu près du HUD ; **Ouvrir dans Codex** mène à la tâche choisie. Le pourcentage montre le quota. Pour conserver l’ouverture directe de la grande liste, désactiver **Ouvrir un aperçu au clic sur le HUD**.
+Cliquer sur le mini HUD ouvre les **réglages**, y compris sur ses compteurs et son quota. La **cloche intégrée** donne accès à Ne pas déranger. Pour choisir l’aperçu des tâches à la place, utiliser **Réglages → HUD → Au clic sur le HUD → Aperçu des tâches** ; ses boutons permettent ensuite d’ouvrir une tâche dans Codex. La 0.11.1 rétablit l’ouverture des réglages pour les configurations de la 0.11.0.
 
 Le menu d’une tâche permet de l’épingler dans le HUD, de l’ajouter aux favoris, de couper temporairement ses alertes ou de masquer une ancienne question. **Réglages → Suivi** sélectionne les projets suivis.
 
-La cloche ouvre **Ne pas déranger** : 15 min, 30 min, 1 h ou la session. Les compteurs et l’historique continuent ; notifications et sons attendent. `/codex dnd 30` et `/codex dnd off` donnent le même accès.
+La cloche à l’intérieur du HUD ouvre **Ne pas déranger** : 15 min, 30 min, 1 h ou la session. Les compteurs et l’historique continuent ; notifications et sons attendent. `/codex dnd 30` et `/codex dnd off` donnent le même accès.
 
 ## Notifications et réglages
 

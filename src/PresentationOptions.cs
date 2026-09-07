@@ -17,6 +17,7 @@ public sealed class QuietModeGate
 }
 
 public enum MiniHudStyle { Fil, Capsule, Balise, Lisere, Totem, ObsidienneFine, Ruban, Focus, TacheEpinglee }
+public enum HudClickAction { Settings, TaskPreview }
 public static class MiniHudOptions
 {
     public static float FitScale(System.Numerics.Vector2 size, float requested, System.Numerics.Vector2 viewport) =>
@@ -24,13 +25,22 @@ public static class MiniHudOptions
     public static readonly string[] Names = ["Fil", "Capsule", "Balise", "Liseré", "Totem", "Panneau fin", "Ruban", "Focus", "Tâche épinglée"];
     public static System.Numerics.Vector2 Size(MiniHudStyle style, bool quota, HudAppearance? appearance = null)
     {
-        var size = BaseSize(style, quota);
+        var size = ContentSize(style, quota) + (style is MiniHudStyle.Focus or MiniHudStyle.TacheEpinglee
+            ? System.Numerics.Vector2.Zero : style is MiniHudStyle.Balise or MiniHudStyle.Totem
+                ? new System.Numerics.Vector2(0, 28) : new System.Numerics.Vector2(28, 0));
         if (appearance is null) return size;
         if (appearance.PadsMinimal(style)) size += new System.Numerics.Vector2(16, 8);
         size += 2 * (appearance.Padding + System.Numerics.Vector2.Abs(appearance.Text.Offset));
         return size * (appearance.Text.Size / 14);
     }
-    private static System.Numerics.Vector2 BaseSize(MiniHudStyle style, bool quota) => style switch
+    public static System.Numerics.Vector2 PausePosition(MiniHudStyle style, bool quota)
+    {
+        var content = ContentSize(style, quota);
+        return style is MiniHudStyle.Focus or MiniHudStyle.TacheEpinglee ? new(content.X - 30, 5)
+            : style is MiniHudStyle.Balise or MiniHudStyle.Totem ? new((content.X - 24) / 2, content.Y + 2)
+            : new(content.X + 2, (content.Y - 24) / 2);
+    }
+    internal static System.Numerics.Vector2 ContentSize(MiniHudStyle style, bool quota) => style switch
     {
         MiniHudStyle.Fil => new(quota ? 218 : 164, 28),
         MiniHudStyle.Balise => new(58, 58),

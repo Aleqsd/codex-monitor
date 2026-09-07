@@ -71,8 +71,15 @@ Le point bleu a été confirmé dans le flux local de l’application installée
 
 ## Interface 0.11.0
 
-`HudPeek.cs` porte l’aperçu local ouvert au clic. `SettingsLayout.cs` sépare la navigation, le formulaire défilant et l’aperçu fixe. Les trois nouveaux identifiants `MiniHudStyle` sont ajoutés après les anciens pour préserver les configurations. Le pin appartient au plugin ; il ne modifie pas les favoris de Codex.
+`HudPeek.cs` porte l’aperçu local ouvert au clic lorsque l’utilisateur choisit cette action. `SettingsLayout.cs` sépare la navigation, le formulaire défilant et l’aperçu fixe. Les trois nouveaux identifiants `MiniHudStyle` sont ajoutés après les anciens pour préserver les configurations. Le pin appartient au plugin ; il ne modifie pas les favoris de Codex.
 
 `pendingQuestionPreviews` exporte seulement les titres des questions structurées encore en attente, en mémoire et avec une limite de 240 caractères. La projection garde les identités nécessaires aux patches, sans corps de message ni réponse. Le contrat C# vérifie l’identité et la fraîcheur avant affichage. `NotificationHistory` retire les extraits à l’écriture et au chargement ; la file visible actualise les extraits après une réponse partielle.
 
-Pour cette interface, lancer `--ui-preview artifacts/ui-011` avec le harnais natif. Ce parcours remplace les anciens tests UI fondés sur les coordonnées des onglets de la 0.10.0. Les contrôles métier restent dans CoreChecks et les tests Node.
+Pour cette interface, lancer `--ui-preview artifacts/ui-0111` avec le harnais natif. Ce parcours remplace les anciens tests UI fondés sur les coordonnées des onglets de la 0.10.0. Les contrôles métier restent dans CoreChecks et les tests Node.
+
+
+## Clic et pause intégrée (0.11.1)
+
+`HudClickAction` choisit entre réglages (défaut) et aperçu. L’ancien champ JSON `HudQuickPeek` de la 0.11.0 est ignoré pour rétablir les réglages lors de la migration ; format, ancre et autres préférences sont conservés. Les choix explicites effectués ensuite sont sauvegardés.
+
+La cloche est dessinée par `MiniHud.DrawFace`, y compris dans les aperçus. `MiniHudOptions` réserve sa place dans la surface ; la zone `HudTarget.Pause` partage le bouton ImGui du HUD et ne propage pas le clic aux réglages. Le mode placement utilise toujours la surface entière. Les cinq scripts du relais 0.11.0 restent inchangés.

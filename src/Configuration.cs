@@ -21,7 +21,8 @@ public sealed class Configuration : IPluginConfiguration
     public SurfaceAppearance? ToastAppearance { get; set; }
     public MiniHudStyle HudStyle { get; set; } = MiniHudStyle.Capsule;
     public string? PinnedHudTaskId { get; set; }
-    public bool HudQuickPeek { get; set; } = true;
+    // Old HudQuickPeek JSON is intentionally ignored: restore settings on click after 0.11.0.
+    public HudClickAction HudClickAction { get; set; } = HudClickAction.Settings;
     public bool ShowQuestionExcerpts { get; set; } = true;
     public bool ShowUsage { get; set; } = true;
     public UsagePreference UsagePeriod { get; set; } = UsagePreference.Weekly;
@@ -77,6 +78,7 @@ public sealed class Configuration : IPluginConfiguration
         DismissedQuestions = QuestionDismissals.Clean(DismissedQuestions);
         Indicator = IndicatorOptions.Resolve(Indicator, ShowDtr, ShowMiniHud);
         if (!Enum.IsDefined(HudStyle)) HudStyle = MiniHudStyle.Capsule;
+        if (!Enum.IsDefined(HudClickAction)) HudClickAction = HudClickAction.Settings;
         MiniHudScale = NotificationGeometry.FiniteClamp(MiniHudScale, 0.75f, 1.5f, 1);
         MiniHudOpacity = NotificationGeometry.FiniteClamp(MiniHudOpacity, 0.35f, 1, 0.94f);
         HudAppearance ??= new HudAppearance { Opacity = MiniHudOpacity };

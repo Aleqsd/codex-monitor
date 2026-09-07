@@ -95,7 +95,9 @@ internal sealed partial class SettingsPanel
             Remember("pinned-task");
         }
         Toggle("Afficher le quota restant",config.ShowUsage,v=>config.ShowUsage=v);
-        Toggle("Ouvrir un aperçu au clic sur le HUD",config.HudQuickPeek,v=>config.HudQuickPeek=v);Remember("hud-peek");
+        var clickAction = (int)config.HudClickAction;
+        SettingCombo("Au clic sur le HUD", ref clickAction, ["Ouvrir les réglages", "Aperçu des tâches"], v => config.HudClickAction = (HudClickAction)v);Remember("hud-click");
+        ImGui.TextWrapped("La cloche intégrée met les notifications et les sons en pause.");
         Toggle("Animer les changements",config.AnimateHudChanges,v=>config.AnimateHudChanges=v);
         if(config.AnimateHudChanges && ImGui.SmallButton("Tester l’animation")) hudMotion.Highlight();
         ObsidianTheme.Section("Position et taille");

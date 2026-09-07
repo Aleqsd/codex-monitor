@@ -22,14 +22,8 @@ internal static unsafe partial class Program
     }
     private static Vector2 PauseButtonCenter()
     {
-        var config = plugin.Config;
-        var face = MiniHudOptions.Size(config.HudStyle, config.ShowUsage, config.HudAppearance);
-        var basis = face + new Vector2(30, 0);
-        var viewport = ImGui.GetMainViewport();
-        var scale = Math.Min(config.MiniHudScale * Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale, (viewport.Size.X - 24) / basis.X);
-        var size = basis * scale;
-        var p = NotificationGeometry.Place(new(config.MiniHudAnchorX, config.MiniHudAnchorY), viewport.Pos, viewport.Size, size, 0, 1, 0);
-        return p + new Vector2(face.X * scale + 16 * scale, size.Y / 2);
+        var hit = plugin.Hud.Hits.Single(h => h.Target == HudTarget.Pause);
+        return (hit.Min + hit.Max) / 2;
     }
     private static void AutomationRevision(string output)
     {
