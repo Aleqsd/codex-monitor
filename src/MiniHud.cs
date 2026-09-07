@@ -4,11 +4,11 @@ using Dalamud.Interface.Utility;
 
 namespace CodexMonitor;
 
-internal enum HudTarget { All, Active, Ready, Attention, Quota }
+internal enum HudTarget { All, Active, Ready, Attention, Quota, Pinned }
 internal sealed record HudHit(HudTarget Target, Vector2 Min, Vector2 Max)
 { internal bool Contains(Vector2 p) => p.X >= Min.X && p.X < Max.X && p.Y >= Min.Y && p.Y < Max.Y; }
 
-internal sealed class MiniHud(Plugin plugin, Action openMonitor)
+internal sealed partial class MiniHud(Plugin plugin, Action openMonitor)
 {
     internal bool Editing;
     private bool dragging;
@@ -19,7 +19,7 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
 
     internal static void DrawFace(Vector2 p, Vector2 size, MonitorSnapshot snapshot, bool quiet, bool editing, float opacity,
         MiniHudStyle style = MiniHudStyle.Capsule, bool showUsage = true, HudMotionFrame? motion = null, HudAppearance? appearance = null,
-        UsagePreference usagePreference = UsagePreference.Weekly, List<HudHit>? hits = null)
+        UsagePreference usagePreference = UsagePreference.Weekly, List<HudHit>? hits = null, string? pinnedTaskId = null)
     {
         using var palette = ObsidianTheme.Palette(appearance);
         using var fontScope = UiFonts.Push(appearance?.Text);
@@ -29,7 +29,7 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
         var font = ImGui.GetFont();
         var usage = snapshot.SelectedUsage(usagePreference);
         var muted = ObsidianTheme.Muted;
-        var activeColor = snapshot.Connected && snapshot.Active > 0 ? ObsidianTheme.Blue : muted;
+        var activeColor = snapshot.Connected && snapshot.Active > 0 ? ObsidianTheme.Active : muted;
         var quotaColor = QuotaColor(usage?.RemainingPercent);
         var otherExhausted = snapshot.Connected && snapshot.Usage?.OtherExhausted(DateTimeOffset.UtcNow, usage) == true;
         if (otherExhausted) quotaColor = ObsidianTheme.Red;
@@ -45,7 +45,7 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
         var active = snapshot.Connected ? Count(snapshot.Active) : "—";
         var alert = snapshot.Connected ? Count(snapshot.Attention) : "—";
         var ready = snapshot.Connected && snapshot.ReadStateSupported ? Count(snapshot.Ready) : "—";
-        var readyColor = snapshot.Connected && snapshot.Ready > 0 ? ObsidianTheme.Blue : muted;
+        var readyColor = snapshot.Connected && snapshot.Ready > 0 ? ObsidianTheme.Ready : muted;
         var percent = usage?.Percent ?? "—";
         if (otherExhausted) percent += "*";
         var animation = motion ?? new HudMotionFrame(0, 0, 0, usage is null ? null : (float)usage.RemainingPercent / 100);
@@ -94,6 +94,42 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
         }
         switch (style)
         {
+            case MiniHudStyle.Ruban:
+                Terminal(17, 17); Text("Codex", 31, 9, ObsidianTheme.Text, 13);
+                Animated(active + " en cours", 82, 9, activeColor, animation.ActivePulse, 13);
+                Hit(HudTarget.Active,78,3,101,27); Ready(185,9,true);
+                Animated(alert + " à voir", 284, 9, attentionColor, animation.AttentionPulse, 13);
+                Hit(HudTarget.Attention,278,3,102,27);
+                if(showUsage) { Line(394,9,394,25,ObsidianTheme.Line); Animated(percent,407,9,quotaColor,animation.UsagePulse,13); Hit(HudTarget.Quota,400,3,58,27); }
+                break;
+            case MiniHudStyle.Focus:
+                Terminal(17,17); Text("Codex",31,9,ObsidianTheme.Text,13);
+                var pause = quiet ? "Alertes en pause" : "Alertes actives";
+                Text(pause,baseSize.X-12-Width(pause,11),10,quiet ? ObsidianTheme.Amber : muted,11);
+                var focus = FocusLabel(snapshot);
+                Animated(focus,12,33,!snapshot.Connected ? muted : snapshot.Attention>0 ? snapshot.Threads.Any(t=>t.State=="error") ? ObsidianTheme.Red : attentionColor : snapshot.Ready>0 ? readyColor : activeColor, Math.Max(animation.ActivePulse,animation.AttentionPulse),17);
+                Hit(!snapshot.Connected ? HudTarget.All : snapshot.Attention>0 ? HudTarget.Attention : snapshot.Ready>0 ? HudTarget.Ready : HudTarget.Active,8,30,304,27);
+                Text(active+" en cours",12,64,activeColor,12); Hit(HudTarget.Active,8,59,94,25);
+                Ready(111,64,true);
+                if(showUsage) { Text(percent+" restants",baseSize.X-12-Width(percent+" restants",12),64,quotaColor,12); Hit(HudTarget.Quota,211,59,105,25); }
+                break;
+            case MiniHudStyle.TacheEpinglee:
+                Terminal(17,17); Text("Codex",31,9,ObsidianTheme.Text,13);
+                var paused = quiet ? "Alertes en pause" : "Tâche épinglée";
+                Text(paused,baseSize.X-12-Width(paused,11),10,quiet ? ObsidianTheme.Amber : muted,11);
+                var pinned = snapshot.Connected ? snapshot.Threads.FirstOrDefault(t=>t.Id==pinnedTaskId) : null;
+                var pinnedTitle = pinned?.Title ?? (!snapshot.Connected ? "Relais déconnecté" : pinnedTaskId is null ? "Choisir une tâche à épingler" : "Tâche hors des projets suivis ou indisponible");
+                var titleFont = 15*s;
+                Text(ObsidianTheme.Fit(pinnedTitle,(baseSize.X-24)*s,titleFont),12,33,ObsidianTheme.Text,15);
+                Hit(HudTarget.Pinned,8,29,334,59);
+                Text(ObsidianTheme.Fit(pinned?.ModelLabel ?? "Depuis le menu d’une tâche ou les réglages HUD",(baseSize.X-24)*s,11*s),12,54,muted,11);
+                Text(pinned?.Label ?? "",12,73,pinned is null ? muted : ObsidianTheme.TaskState(pinned),12);
+                if(pinned?.InterventionLabel is { } intervention) Text(intervention,baseSize.X-12-Width(intervention,12),73,ObsidianTheme.Amber,12);
+                Text(active+" en cours",12,96,activeColor,11); Hit(HudTarget.Active,8,91,94,21);
+                Ready(107,95,true);
+                Text(alert+" à voir",205,96,attentionColor,11); Hit(HudTarget.Attention,200,91,84,21);
+                if(showUsage) { Text(percent,baseSize.X-12-Width(percent,11),96,quotaColor,11); Hit(HudTarget.Quota,286,91,60,21); }
+                break;
             case MiniHudStyle.Fil:
                 Text("Codex", 1, 6, ObsidianTheme.Text); Animated(active, 51, 6, activeColor, animation.ActivePulse);
                 Hit(HudTarget.Active,48,2,32,24); Ready(84,6);
@@ -174,7 +210,7 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
         var viewport = ImGui.GetMainViewport();
         var faceBase = MiniHudOptions.Size(config.HudStyle, config.ShowUsage, config.HudAppearance);
         var baseSize = faceBase + new Vector2(30, 0);
-        var scale = Math.Min(config.MiniHudScale * ImGuiHelpers.GlobalScale, (viewport.Size.X - 24) / baseSize.X);
+        var scale = MiniHudOptions.FitScale(baseSize,config.MiniHudScale * ImGuiHelpers.GlobalScale,viewport.Size);
         var size = baseSize * scale;
         if (scale < 0.25f || viewport.Size.Y < size.Y + 24) return;
         var position = NotificationGeometry.Place(new Vector2(config.MiniHudAnchorX, config.MiniHudAnchorY), viewport.Pos, viewport.Size, size, 0, 1, 0);
@@ -191,11 +227,11 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
             var faceSize = faceBase * scale;
             var frame = motion.Update(snapshot, config.AnimateHudChanges && !Editing, ImGui.GetIO().DeltaTime, config.UsagePeriod);
             Hits.Clear();
-            DrawFace(p, faceSize, snapshot, plugin.Center.IsQuiet, Editing, config.MiniHudOpacity, config.HudStyle, config.ShowUsage, frame, config.HudAppearance, config.UsagePeriod, Hits);
+            DrawFace(p, faceSize, snapshot, plugin.Center.IsQuiet, Editing, config.MiniHudOpacity, config.HudStyle, config.ShowUsage, frame, config.HudAppearance, config.UsagePeriod, Hits, config.PinnedHudTaskId);
             var target = Hits.LastOrDefault(h => h.Contains(ImGui.GetIO().MousePos))?.Target ?? HudTarget.All;
             ImGui.SetCursorPos(Vector2.Zero);
             var clicked = ImGui.InvisibleButton("hud", Editing ? size : faceSize);
-            if (ImGui.IsItemHovered())
+            if (ImGui.IsItemHovered() && !ImGui.IsPopupOpen("hud-peek"))
             {
                 ImGui.SetMouseCursor(Editing ? ImGuiMouseCursor.ResizeAll : ImGuiMouseCursor.Hand);
                 ImGui.BeginTooltip(); ImGui.PushTextWrapPos(430 * ImGuiHelpers.GlobalScale);
@@ -212,7 +248,7 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
                     else
                     {
                         var tasks = snapshot.Threads.Where(task => task.IsObserved).OrderBy(task => task.NeedsAttention ? 0 : task.State == "active" ? 1 : 2).ToArray();
-                        foreach (var task in tasks.Take(8)) EmojiText.Wrapped($"{task.Label}{(task.HasQuestion ? " · ?" : "")} · {UnicodeText.Truncate(task.Title, 100)}", 430 * ImGuiHelpers.GlobalScale);
+                        foreach (var task in tasks.Take(8)) EmojiText.Wrapped($"{task.Label}{(task.InterventionLabel is { } label ? " · " + label : "")} · {UnicodeText.Truncate(task.Title, 100)}", 430 * ImGuiHelpers.GlobalScale);
                         if (tasks.Length > 8) ImGui.TextDisabled($"+ {tasks.Length - 8} tâches");
                         if (tasks.Length == 0) ImGui.TextDisabled("Aucune tâche observée");
                     }
@@ -234,11 +270,13 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right)) ImGui.OpenPopup("pause-menu");
                 if (clicked)
                 {
-                    if (target == HudTarget.Quota) plugin.OpenQuota();
+                    if (config.HudQuickPeek || target == HudTarget.Pinned) OpenPeek(target, p, faceSize);
+                    else if (target == HudTarget.Quota) plugin.OpenQuota();
                     else if (target == HudTarget.All) openMonitor();
                     else plugin.OpenTasks(target == HudTarget.Active ? 1 : target == HudTarget.Ready ? 4 : 2);
                 }
                 PauseControls.Icon(plugin, p + new Vector2(faceSize.X + 4 * scale, Math.Max(0, (size.Y - 24 * scale) / 2)), 24 * scale);
+                DrawPeek(snapshot);
             }
         }
         finally { ImGui.End(); ImGui.PopStyleVar(3); }

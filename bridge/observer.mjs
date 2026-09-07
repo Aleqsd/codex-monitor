@@ -1,7 +1,7 @@
 import net from 'node:net';
 import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
-import { projectQuestions, projectQuestionPatch, pendingQuestionIds } from './questions.mjs';
+import { projectQuestions, projectQuestionPatch, pendingQuestionIds, pendingQuestionPreviews } from './questions.mjs';
 
 export const PIPE = '\\\\.\\pipe\\codex-ipc';
 const MAX_FRAME_BYTES = 256 * 1024 * 1024;
@@ -305,6 +305,7 @@ export class CodexObserver extends EventEmitter {
         ...taskMetadata(row.availability === 'live' ? row.fields : { latestModel: row.catalog.model }),
         availability: row.availability,
         pendingQuestionIds: row.availability === 'live' ? pendingQuestionIds(row.fields) : [],
+        questionPreviews: row.availability === 'live' ? pendingQuestionPreviews(row.fields) : [],
         ...(row.availability === 'live' ? displayStatus(row.fields.threadRuntimeStatus)
           : { state: row.availability, label: labels[row.availability] ?? 'État inconnu' }),
         runtimeStatus: row.availability === 'live' ? row.fields.threadRuntimeStatus ?? null : null,

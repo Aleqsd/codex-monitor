@@ -32,7 +32,7 @@ Le script optionnel `Activer-Quota.ps1` peut remplacer un ancien relais reconnu 
 
 ## Données
 
-SQLite est ouvert en lecture seule. Le canal local interne `codex-ipc` confirme les propriétaires et les états. Les titres, projets, modèles et identifiants restent locaux ; le contenu des conversations, questions, réponses et sorties d’outils n’est pas transmis au jeu. Les fichiers `runtime/` et les journaux sont privés et ignorés par Git.
+SQLite est ouvert en lecture seule. Le canal local interne `codex-ipc` confirme les propriétaires et les états. Les titres, projets, modèles et identifiants restent locaux ; les réponses, instructions et sorties d’outils ne sont pas transmises au jeu. Depuis la 0.11.0, les titres des questions structurées peuvent fournir un extrait de 240 caractères maximum, seulement pour les questions encore en attente. Ces extraits restent temporaires et ne sont ni journalisés ni sauvegardés dans l’historique. Les fichiers `runtime/` et les journaux sont privés et ignorés par Git.
 
 Les questions structurées sont suivies même si le travail continue. Depuis la 0.10.0, le relais transmet aussi le modèle et l’effort de l’exécution chargée ainsi que `hasUnreadTurn`, l’indicateur de lecture réel de Codex. Les anciennes versions ne fournissaient pas cet indicateur. Le jeu ne conserve aucun acquittement local et n’écrit pas dans l’état de lecture de Codex.
 

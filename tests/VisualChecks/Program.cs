@@ -27,6 +27,7 @@ internal static unsafe partial class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--ui-preview")) { UiRevision(args.Last()); return; }
         if (args.Contains("--workflow-preview")) { WorkflowRevision(args.Last()); return; }
         if (args.Contains("--automation-config-checks")) { AutomationConfigChecks(); return; }
         if (args.Contains("--automation-preview")) { AutomationRevision(args.Last()); return; }
@@ -336,7 +337,7 @@ internal static unsafe partial class Program
                         var panel = skinPanel ??= new SettingsPanel(plugin) { AppearanceScope = skinScope };
                         if (skinScroll > 500 * Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale)
                             ImGui.GetStateStorage().SetInt(ImGui.GetID("Disposition et détails"), 1);
-                        typeof(SettingsPanel).GetMethod("DrawAppearance", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(panel, null);
+                        typeof(SettingsPanel).GetMethod("DrawAppearanceEditor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(panel, null);
                         skinScope = panel.AppearanceScope;
                         ImGui.SetScrollY(skinScroll);
                     }
@@ -344,8 +345,8 @@ internal static unsafe partial class Program
                 }
                 else if (appearanceOnly)
                 {
-                    var panel = new SettingsPanel(plugin);
-                    typeof(SettingsPanel).GetMethod("DrawHudAppearance", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(panel, null);
+                    var panel = new SettingsPanel(plugin) { AppearanceScope=AppearanceTarget.Hud };
+                    typeof(SettingsPanel).GetMethod("DrawAppearanceEditor", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(panel, null);
                 }
                 else if (gallery) DrawGallery(); else window.Draw();
             }
@@ -362,7 +363,7 @@ internal static unsafe partial class Program
         ImGui.TextDisabled("Rendu ImGui hors jeu · Données d’exemple · " + galleryState.Replace("hud-", ""));
         var origin = ImGui.GetCursorScreenPos() + new Vector2(0, 10 * s);
         var cell = new Vector2((screenWidth - 50 * s) / 2, (screenHeight - origin.Y - 15 * s) / 3);
-        foreach (var style in Enum.GetValues<MiniHudStyle>())
+        foreach (var style in Enum.GetValues<MiniHudStyle>().Where(style=>(int)style<6))
         {
             var index = (int)style;
             var p = origin + new Vector2(index % 2 * cell.X, index / 2 * cell.Y);

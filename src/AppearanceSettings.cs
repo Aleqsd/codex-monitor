@@ -7,16 +7,6 @@ namespace CodexMonitor;
 internal sealed partial class SettingsPanel
 {
     internal AppearanceTarget AppearanceScope;
-    private void DrawAppearance()
-    {
-        foreach (var (target, label) in new[] { (AppearanceTarget.Window, "Tâches"), (AppearanceTarget.Hud, "HUD"), (AppearanceTarget.Notification, "Notifications") })
-        {
-            if (target != AppearanceTarget.Window) ImGui.SameLine();
-            if (ObsidianTheme.Tab(label, AppearanceScope == target)) AppearanceScope = target;
-        }
-        DrawAppearanceEditor();
-    }
-
     private void DrawAppearanceEditor()
     {
         var config = plugin.Config;
@@ -29,7 +19,7 @@ internal sealed partial class SettingsPanel
             if (ImGui.RadioButton(skin.ToString(), appearance.Skin == skin))
             { appearance.ApplyPreset(skin, AppearanceScope); plugin.Save(); }
         }
-        ImGui.Spacing(); DrawAppearancePreview(appearance); ImGui.Spacing();
+        if(!separatePreview) { ImGui.Spacing(); DrawAppearancePreview(appearance); ImGui.Spacing(); }
         ColorControl("Fond", new(appearance.Red, appearance.Green, appearance.Blue), value => { appearance.Red = value.X; appearance.Green = value.Y; appearance.Blue = value.Z; });
         SettingFloat("Opacité du fond", appearance.Opacity * 100, 0, 100, "%.0f %%", value => appearance.Opacity = value / 100);
         ImGui.TextDisabled("Le texte et les indicateurs gardent leur opacité.");
@@ -71,7 +61,7 @@ internal sealed partial class SettingsPanel
                 var alignment = (int)appearance.Alignment;
                 SettingCombo("Alignement des titres", ref alignment, ["Gauche", "Centre", "Droite"], value => appearance.Alignment = (ContentAlignment)value);
             }
-            ImGui.TextWrapped("Ces décalages déplacent le texte à l’intérieur du composant. La position du HUD se règle dans Affichage.");
+            ImGui.TextWrapped("Ces décalages déplacent le texte à l’intérieur du composant. La position du HUD se règle dans HUD.");
             SettingFloat("Décalage interne du texte X", appearance.Text.OffsetX, -20, 20, "%.0f px", value => appearance.Text.OffsetX = value);
             SettingFloat("Décalage interne du texte Y", appearance.Text.OffsetY, -12, 12, "%.0f px", value => appearance.Text.OffsetY = value);
         }
@@ -112,8 +102,8 @@ internal sealed partial class SettingsPanel
     }
 
     private static MonitorSnapshot ExampleSnapshot() => new(true, DateTimeOffset.UtcNow,
-        [new("demo1", "Préparer une version", "Exemple", "", "active"), new("demo2", "Valider un écran", "Exemple", "", "needsInput")], null, true,
-        new AccountUsage(DateTimeOffset.UtcNow, [new(48, 10080, null)]));
+        [new("demo1", "🎨 Améliorer l’accueil", "Exemple", "gpt-6-astra", "active", ReasoningEffort:"xhigh"), new("demo2", "Valider un écran", "Exemple", "gpt-6-astra", "needsInput"),new("demo3","Vérifier les notifications","Exemple","gpt-6-astra","idle",HasUnreadTurn:true)], null, true,
+        new AccountUsage(DateTimeOffset.UtcNow, [new(78, 10080, null)]),TaskMetadataSupported:true);
     private void ColorControl(string label, Vector3 color, Action<Vector3> set)
     {
         if (ImGui.ColorEdit3(label, ref color, ImGuiColorEditFlags.NoInputs)) set(color);

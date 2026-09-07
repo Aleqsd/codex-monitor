@@ -31,8 +31,10 @@
     <None Include="$(DALAMUD_HOME)/cimgui.dll" Link="cimgui.dll" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="../../src/MainWindow.cs" Link="MainWindow.cs" />
     <Compile Include="../../src/SettingsPanel.cs" Link="SettingsPanel.cs" />
+    <Compile Include="../../src/SettingsLayout.cs" Link="SettingsLayout.cs" />
     <Compile Include="../../src/AppearanceSettings.cs" Link="AppearanceSettings.cs" />
     <Compile Include="../../src/MiniHud.cs" Link="MiniHud.cs" />
+    <Compile Include="../../src/HudPeek.cs" Link="HudPeek.cs" />
     <Compile Include="../../src/ObsidianTheme.cs" Link="ObsidianTheme.cs" />
     <Compile Include="../../src/Configuration.cs" Link="Configuration.cs" />
     <Compile Include="../../src/PresentationOptions.cs" Link="PresentationOptions.cs" />

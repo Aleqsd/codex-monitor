@@ -20,6 +20,9 @@ public sealed class Configuration : IPluginConfiguration
     public SurfaceAppearance? WindowAppearance { get; set; }
     public SurfaceAppearance? ToastAppearance { get; set; }
     public MiniHudStyle HudStyle { get; set; } = MiniHudStyle.Capsule;
+    public string? PinnedHudTaskId { get; set; }
+    public bool HudQuickPeek { get; set; } = true;
+    public bool ShowQuestionExcerpts { get; set; } = true;
     public bool ShowUsage { get; set; } = true;
     public UsagePreference UsagePeriod { get; set; } = UsagePreference.Weekly;
     public bool AnimateHudChanges { get; set; } = true;
@@ -53,7 +56,7 @@ public sealed class Configuration : IPluginConfiguration
     // Only used when no saved config exists; absent fields in older JSON retain their appearance.
     internal static Configuration NewInstall()
     {
-        var config = new Configuration { Indicator = IndicatorMode.MiniHud, HudStyle = MiniHudStyle.ObsidienneFine, MiniHudOpacity = 1 };
+        var config = new Configuration { Indicator = IndicatorMode.MiniHud, HudStyle = MiniHudStyle.Focus, MiniHudOpacity = 1 };
         config.Normalize();
         config.WindowAppearance!.ApplyPreset(MonitorSkin.LMeter, AppearanceTarget.Window);
         config.HudAppearance!.ApplyPreset(MonitorSkin.LMeter, AppearanceTarget.Hud);
@@ -64,6 +67,7 @@ public sealed class Configuration : IPluginConfiguration
     public void Normalize()
     {
         Following ??= new(); Following.Normalize();
+        if (!Guid.TryParse(PinnedHudTaskId, out _)) PinnedHudTaskId = null;
         QuotaAlerts ??= new(); QuotaAlerts.Normalize();
         // Previous versions opened the window by default. Apply the new quiet startup once;
         // later explicit opt-ins, appearance, anchors and history survive normalization.

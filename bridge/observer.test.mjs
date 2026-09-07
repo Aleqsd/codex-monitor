@@ -4,7 +4,7 @@ import net from 'node:net';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { CodexObserver, FrameDecoder, encodeFrame, displayStatus, applyMetadataPatches, selectFields } from './observer.mjs';
-import { pendingQuestionIds } from './questions.mjs';
+import { pendingQuestionIds, pendingQuestionPreviews } from './questions.mjs';
 
 test('framing supports fragmented UTF-8 messages and coalesced frames', () => {
   const decoded = [];
@@ -60,11 +60,12 @@ const canonical = (items = []) => ({ threadRuntimeStatus: { type: 'active', acti
   islands: [{ newerBoundary: { status: 'exhausted' }, entries: [{ value: 'turn:1' }] }],
 } } });
 
-test('async questions preserve running state and retain no question, answer or tool text', () => {
+test('async questions preserve running state and retain only bounded explicit headings', () => {
   const state = selectFields(canonical([question(), { type: 'commandExecution', command: 'private command', output: 'private output' }]));
   assert.equal(displayStatus(state.threadRuntimeStatus).state, 'active');
   assert.equal(pendingQuestionIds(state).length, 1);
   assert.equal(JSON.stringify(state).includes('private'), false);
+  assert.equal(pendingQuestionPreviews(state)[0].text, 'Private preference?');
   assert.equal(JSON.stringify(selectFields(canonical([question(), reply()]))).includes('private'), false);
   assert.deepEqual(pendingQuestionIds(selectFields(canonical([{ id: 'prose', type: 'agentMessage', text: 'Question mark?' }]))), []);
 });
@@ -102,13 +103,15 @@ test('legacy turns and accepted server user messages resolve structured question
   assert.equal(pendingQuestionIds(selectFields(canonical([{ id: 'legacy', type: 'agentMessage', delivery: 'async', text: 'Private question?' }]))).length, 1);
 });
 
-test('nonblocking server questions clear on request removal without retaining their content', () => {
+test('nonblocking server questions clear on request removal and retain no options', () => {
   let state = selectFields({ requests: [{ id: 45, method: 'item/tool/requestUserInput', params: { isBlocking: false,
     questions: [{ id: 'q1', question: 'private question', options: ['private option'] }] } }] });
   assert.equal(pendingQuestionIds(state).length, 1);
-  assert.equal(JSON.stringify(state).includes('private'), false);
+  assert.equal(JSON.stringify(state).includes('private option'), false);
+  assert.equal(pendingQuestionPreviews(state)[0].text, 'private question');
   state = applyMetadataPatches(state, [{ op: 'remove', path: ['requests', 0] }]);
   assert.deepEqual(pendingQuestionIds(state), []);
+  assert.deepEqual(pendingQuestionPreviews(state), []);
   assert.deepEqual(pendingQuestionIds(selectFields({ requests: [{ id: 45, method: 'item/tool/requestUserInput', params: { isBlocking: true } }] })), []);
 });
 
@@ -123,6 +126,7 @@ test('public snapshots suppress question signals after owner loss or incompatibl
   assert.equal(JSON.stringify(snapshot).includes('private'), false);
   observer.handle(streamMessage({ type: 'snapshot', revision: 2, conversationState: canonical([question()]) }, 12));
   assert.deepEqual(observer.snapshot().threads[0].pendingQuestionIds, []);
+  assert.deepEqual(observer.snapshot().threads[0].questionPreviews, []);
 });
 
 test('revision gaps and protocol drift suppress potentially stale active states', () => {
@@ -136,6 +140,30 @@ test('revision gaps and protocol drift suppress potentially stale active states'
   assert.equal(observer.snapshot().threads[0].runtimeStatus, null);
   observer.handle(streamMessage({ type: 'snapshot', revision: 7, conversationState: { threadRuntimeStatus: { type: 'active' } } }, 12));
   assert.equal(observer.snapshot().threads[0].state, 'incompatible');
+});
+
+test('question previews follow edits and answers without exporting unrelated text', () => {
+  let state=selectFields(canonical([question('q1'),question('q2')]));
+  const root=['turnHistory','history','entitiesByKey','turn:1','items'];
+  const original=pendingQuestionPreviews(state)[0].id;
+  state=applyMetadataPatches(state,[{op:'replace',path:[...root,0,'questions',0,'title'],value:'Choisir 🦎\n'+ 'é'.repeat(400)}]);
+  assert.equal(pendingQuestionPreviews(state)[0].id,original);
+  assert.equal(Array.from(pendingQuestionPreviews(state)[0].text).length,240);
+  assert.equal(pendingQuestionPreviews(state)[0].text.includes('\n'),false);
+  state=applyMetadataPatches(state,[{op:'add',path:[...root,2],value:reply('q1')}]);
+  assert.equal(pendingQuestionPreviews(state).length,1);
+  assert.notEqual(pendingQuestionPreviews(state)[0].id,original);
+  assert.equal(JSON.stringify(pendingQuestionPreviews(state)).includes('private answer'),false);
+  assert.equal(JSON.stringify(pendingQuestionPreviews(state)).includes('private option'),false);
+  state=applyMetadataPatches(state,[{op:'remove',path:[...root,1]}]);
+  assert.deepEqual(pendingQuestionPreviews(state),[]);
+});
+
+test('historical fragments and ordinary messages cannot supply question previews', () => {
+  const old=canonical([question()]);old.turnHistory.history.islands[0].newerBoundary.status='unknown';
+  assert.deepEqual(pendingQuestionPreviews(selectFields(old)),[]);
+  assert.deepEqual(pendingQuestionPreviews(selectFields(canonical([{type:'agentMessage',text:'A question in prose?'}]))),[]);
+  assert.deepEqual(pendingQuestionPreviews(selectFields(canonical([{type:'agentMessage',delivery:'async',id:'legacy',text:'Legacy private prose?'}]))),[]);
 });
 
 test('real pipe flow observes transitions, owner loss, transport loss and reconnection', { timeout: 7000 }, async t => {

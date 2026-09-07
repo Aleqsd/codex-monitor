@@ -17,7 +17,7 @@ internal static unsafe partial class Program
             Click(100 * scale, 250 * scale);
             Render(Path.Combine(output, $"question-menu-{width}.ppm"));
             Click(width - 20, height - 20);
-            window.ShowSettings = true; Panel.Category = 1; Panel.NotificationDesign = true;
+            window.ShowSettings = true; Panel.Category = 1;
             plugin.Config.ToastAppearance!.ApplyPreset(MonitorSkin.Nuit, AppearanceTarget.Notification);
             plugin.Config.ToastAppearance.ToastCornerRadius = 18;
             for (var n=0; n<3; n++) Frame();
@@ -50,7 +50,7 @@ internal static unsafe partial class Program
         Click(100,313); Click(175,492);
         if (plugin.Snapshot.Attention != 2 || plugin.Config.DismissedQuestions.Count != 0) throw new Exception("Native restore click did not restore the question.");
         Click(195,87); Click(130,134); Click(180,172);
-        if (!window.ShowSettings || Panel.Category != 1 || !Panel.NotificationDesign) throw new Exception("Direct notification design navigation failed.");
+        if (!window.ShowSettings || Panel.Category != 1) throw new Exception("Direct notification design navigation failed.");
         Click(232,274);
         if (plugin.Config.ToastAppearance!.Skin != MonitorSkin.Nuit || plugin.Config.WindowAppearance!.Skin != MonitorSkin.Obsidienne) throw new Exception("Notification theme changed the data appearance.");
         Click(210,534); Click(25,594); Click(440,654); Click(25,689); Click(25,724);

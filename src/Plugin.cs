@@ -230,7 +230,8 @@ public sealed class Plugin : IDalamudPlugin
             nextEmojiRefresh = now.AddSeconds(1);
             emojis.Prepare(snapshot.Threads.Select(task => task.Title).Concat(History.Entries.Select(entry => entry.Task.Title))
                 .Concat(NotificationUi.Queue.Snapshot().Select(item => item.Task.Title))
-                .Append("🔔 Notification d’exemple"));
+                .Concat(Config.ShowQuestionExcerpts ? snapshot.Threads.Select(task=>task.QuestionExcerpt ?? "") : [])
+                .Append("🔔 🎨 Notification d’exemple"));
         }
         var outside = Config.Visibility.HideOutsideGame && !game.LoggedIn;
         var quiet = ApplyQuiet(game, now);

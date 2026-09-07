@@ -1,6 +1,6 @@
 # Notifications
 
-Dans **Réglages → Notifications → Design** (également accessible par **Apparence → Notifications**), choisir LMeter, Obsidienne ou Nuit. Fond, opacité, police locale, taille et couleur du texte, contour/ombre, marges et alignement sont propres aux alertes. Les offsets internes déplacent le texte ; les réglages de placement déplacent l’ensemble à l’écran. Un aperçu fidèle et une restauration du thème conservent l’ancre et les autres préférences.
+Dans **Réglages → Notifications**, à la suite des réglages de placement, choisir LMeter, Obsidienne ou Nuit. Fond, opacité, police locale, taille et couleur du texte, contour/ombre, marges et alignement sont propres aux alertes. Les offsets internes déplacent le texte ; les réglages de placement déplacent l’ensemble à l’écran. Un aperçu fidèle et une restauration du thème conservent l’ancre et les autres préférences.
 
 
 Surface sombre arrondie, symbole circulaire, titre de tâche et projet, statut coloré et barre de durée. Vert pour une réponse prête, ambre pour une réponse ou approbation, rouge pour une erreur.
@@ -25,7 +25,7 @@ Commandes de test : `/codex test`, `/codex test input`, `/codex test approval`, 
 
 L’option **Une question pendant que Codex continue** déclenche une notification « Question posée » et le son d’intervention. Chaque nouvelle question possède un identifiant : une question toujours présente ne déclenche pas d’alertes répétées, mais une deuxième question sur la même tâche est signalée. La pause des notifications et son résumé s’appliquent également.
 
-La tâche garde son état **En cours** et affiche aussi le nombre de questions posées. Elle compte dans les tâches actives et dans celles demandant une intervention. La détection utilise les questions structurées de Codex, sans chercher les points d’interrogation dans les messages ordinaires. Le texte des questions et des réponses n’est pas envoyé au jeu.
+La tâche garde son état **En cours** et affiche aussi **Question posée**. Elle compte dans les tâches actives et dans celles demandant une intervention. La détection utilise les questions structurées de Codex, sans chercher les points d’interrogation dans les messages ordinaires. La 0.11.0 transmet un extrait borné du titre des questions structurées pour les notifications et aperçus, sans réponse ni sortie d’outil. Il est facultatif et absent de l’historique sauvegardé.
 
 Pour les messages asynchrones, le relais suit le dernier échange confirmé et retire le signal après une réponse acceptée via la carte de question Codex, ou lorsqu’un nouvel échange remplace le précédent. Il suit aussi les demandes non bloquantes exposées par le serveur et leur suppression. Une simple lecture, un brouillon ou une réponse libre sans lien explicite avec la question ne prouve pas que celle-ci est résolue. Le bouton local « Passer » n’est pas exposé par ce flux. Seules les questions visibles dans les données chargées par Codex sont observables.
 
@@ -61,7 +61,7 @@ L’historique est enregistré dans la configuration locale du plugin, avec seul
 
 ## Mini HUD
 
-Dans `/codex config` → **Affichage**, choisir **Mini HUD**, **Texte de la barre** ou **Masqué**. Un aperçu montre le choix en direct. Mini HUD et texte ne s’affichent pas simultanément. Masquer l’indicateur conserve les notifications et l’accès par `/codex`.
+Dans `/codex config` → **HUD**, choisir **Mini HUD**, **Texte de la barre** ou **Masqué**. Un aperçu montre le choix en direct. Mini HUD et texte ne s’affichent pas simultanément. Masquer l’indicateur conserve les notifications et l’accès par `/codex`.
 
 Le mini HUD affiche les tâches en cours et les interventions en attente sur deux lignes Obsidienne, avec l’état de connexion et la pause des notifications. Au survol, il montre jusqu’à huit titres, en donnant la priorité aux interventions. Un clic ouvre la liste des tâches.
 
@@ -104,3 +104,11 @@ L’historique recherche les titres et les projets, filtre questions/demandes, e
 Les alertes de quota proposent les seuils 20, 10 et 5 % par défaut, personnalisables de 1 à 99 %. Elles suivent les deux périodes fournies, une fois par seuil et par période identifiée. Plusieurs seuils franchis ensemble donnent une seule alerte pour cette période. Les marques sont sauvegardées pour éviter les répétitions après rechargement. La première lecture et la reconnexion posent une référence silencieuse ; une donnée inconnue, périmée ou sans échéance de période ne déclenche rien. La pause conserve au plus une alerte pertinente par période, avec la valeur actuelle et le délai de renouvellement au retour.
 
 Le modèle et l’effort affichés proviennent en priorité des paramètres de l’exécution chargée, puis du réglage de la tâche quand ces paramètres manquent. Le survol indique cette provenance. Une donnée absente reste « non fourni » ; aucune valeur par défaut n’est inventée. Les tâches et indicateurs anciens continuent à fonctionner avec un relais antérieur, sans prétendre disposer de son point bleu.
+
+## Interface et aperçus (0.11.0)
+
+Ruban, Focus et Tâche épinglée complètent les six formats existants. Focus est le défaut des nouvelles installations ; les préférences déjà sauvegardées sont conservées. Le menu d’une tâche peut choisir le format épinglé et la tâche suivie en une action.
+
+Le clic sur un compteur ouvre un aperçu près du HUD. La liste complète et l’ouverture explicite de la tâche dans Codex restent accessibles. L’aperçu se ferme au clic extérieur et respecte les bords de l’écran. La préférence HUD permet de retrouver l’ouverture directe de la liste.
+
+La réponse non lue est bleue, l’activité neutre, l’intervention ambre et l’erreur rouge. Le titre de la notification passe avant l’événement. Un extrait de question est limité à deux lignes ; un ancien relais ou une question sans titre structuré conserve l’affichage sans extrait. Résoudre ou masquer la question retire aussi son extrait.

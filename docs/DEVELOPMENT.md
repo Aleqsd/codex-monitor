@@ -67,3 +67,12 @@ Le flux expérimental v11 expose `hasUnreadTurn` et les réglages de modèle/eff
 `TaskFollowing` met en cache la sélection de projets et les favoris. Le HUD et les notifications utilisent cette même projection ; l’historique conserve sa source complète. `QuotaAlerts` identifie une période par sa durée et sa date de réinitialisation et sauvegarde les seuils déjà franchis. `ConnectionDiagnostics` exécute Node et HTTP en arrière-plan, puis ne publie que des résultats techniques autorisés. Aucun diagnostic ne démarre une tâche ni ne lit les secrets de connexion.
 
 Le point bleu a été confirmé dans le flux local de l’application installée, en complément des commandes de lecture décrites dans la [documentation officielle Codex](https://learn.chatgpt.com/docs/reference/commands#keyboard-shortcuts). Il reste une intégration interne susceptible d’évoluer, pas une API publique garantie.
+
+
+## Interface 0.11.0
+
+`HudPeek.cs` porte l’aperçu local ouvert au clic. `SettingsLayout.cs` sépare la navigation, le formulaire défilant et l’aperçu fixe. Les trois nouveaux identifiants `MiniHudStyle` sont ajoutés après les anciens pour préserver les configurations. Le pin appartient au plugin ; il ne modifie pas les favoris de Codex.
+
+`pendingQuestionPreviews` exporte seulement les titres des questions structurées encore en attente, en mémoire et avec une limite de 240 caractères. La projection garde les identités nécessaires aux patches, sans corps de message ni réponse. Le contrat C# vérifie l’identité et la fraîcheur avant affichage. `NotificationHistory` retire les extraits à l’écriture et au chargement ; la file visible actualise les extraits après une réponse partielle.
+
+Pour cette interface, lancer `--ui-preview artifacts/ui-011` avec le harnais natif. Ce parcours remplace les anciens tests UI fondés sur les coordonnées des onglets de la 0.10.0. Les contrôles métier restent dans CoreChecks et les tests Node.

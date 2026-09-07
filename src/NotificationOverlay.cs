@@ -14,7 +14,9 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
     private Vector2 dragOrigin;
     private Vector2 dragMouseOrigin;
 
-    internal static MonitoredThread Example(string state) => new("preview", "🔔 Notification d’exemple", "Aperçu Codex", "", state);
+    internal static MonitoredThread Example(string state) => new("preview", "🔔 Vérifier les notifications", "Aperçu Codex", "", state,
+        state == "question" ? ["11111111111111111111111111111111"] : null,
+        QuestionPreviews: state == "question" ? [new("11111111111111111111111111111111", "Préfères-tu un son discret ou uniquement une notification visuelle ?")] : null);
     internal void Test(string state) => Queue.Add(Example(state), config.NotificationSeconds);
     internal void SetPreview(bool enabled)
     {
@@ -42,7 +44,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
     }
 
     internal static Vector2 LogicalSize(SurfaceAppearance appearance) =>
-        new Vector2(440, appearance.Skin == MonitorSkin.Obsidienne ? 136 : 116)
+        new Vector2(440, appearance.Skin == MonitorSkin.Obsidienne ? 160 : 140)
         + 2 * (appearance.Padding + Vector2.Abs(appearance.Text.Offset));
     private Vector2 BaseSize => LogicalSize(config.ToastAppearance!);
     private float Scale(Vector2 viewport) => Math.Min(config.NotificationScale * ImGuiHelpers.GlobalScale * (config.ToastAppearance!.Text.Size / 17),
@@ -115,7 +117,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
                 var p = ImGui.GetWindowPos();
                 uint Color(float r, float g, float b, float opacity = 1) => ImGui.ColorConvertFloat4ToU32(new Vector4(r, g, b, alpha * opacity));
                 DrawFace(draw, p, size, scale, item, config.ToastAppearance!, alpha, preview, draggable,
-                    !preview && taskLink?.ErrorFor(item.Task.Id) is not null ? "Ouverture impossible · Survoler le bouton" : null);
+                    !preview && taskLink?.ErrorFor(item.Task.Id) is not null ? "Ouverture impossible · Survoler le bouton" : null, config.ShowQuestionExcerpts);
 
                 ImGui.SetCursorPos(new Vector2(4, 4) * scale);
                 ImGui.InvisibleButton("body", new Vector2(size.X - 37 * scale, size.Y - 36 * scale));
@@ -128,6 +130,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
                         ImGui.BeginTooltip();
                         ImGui.PushTextWrapPos(440 * ImGuiHelpers.GlobalScale);
                         EmojiText.Wrapped(item.Task.Title, 440 * ImGuiHelpers.GlobalScale);
+                        if(config.ShowQuestionExcerpts && item.Task.QuestionExcerpt is { } excerpt) EmojiText.Wrapped(excerpt,440*ImGuiHelpers.GlobalScale);
                         ImGui.PopTextWrapPos();
                         ImGui.EndTooltip();
                     }
@@ -180,7 +183,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
     }
 
     internal static void DrawFace(ImDrawListPtr draw, Vector2 p, Vector2 size, float scale, NotificationItem item,
-        SurfaceAppearance appearance, float alpha = 1, bool preview = false, bool draggable = false, string? actionError = null)
+        SurfaceAppearance appearance, float alpha = 1, bool preview = false, bool draggable = false, string? actionError = null, bool showQuestionExcerpts = true)
     {
         using var fontScope = UiFonts.Push(appearance.Text);
         using var palette = ObsidianTheme.Palette(appearance);
@@ -216,12 +219,21 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
             var shift = Math.Max(0, width - measured) * (int)appearance.Alignment / 2;
             ObsidianTheme.DrawText(draw, fitted, text + new Vector2(shift, y * scale), color, fontSize * factor, appearance.Text);
         }
-        Label(heading, 0, accent, 1);
-        Label(item.Task.Title, compact ? 23 : 26, foreground, .94f);
+        Label(item.Task.State is "summary" or "quota" ? heading : item.Task.Title, 0, foreground, 1);
+        Label(item.Task.State is "summary" or "quota" ? item.Task.Title : heading, 24, accent, .84f);
+        var excerpt = showQuestionExcerpts ? item.Task.QuestionExcerpt : null;
+        if (excerpt is not null)
+        {
+            var first = ObsidianTheme.Fit(excerpt,width,fontSize*.8f);
+            var split = first.EndsWith('…') && first.Length>1;
+            var firstLine = split ? first[..^1] : first;
+            Label(firstLine,44,foreground,.8f);
+            if(split) Label(excerpt[firstLine.Length..].TrimStart(),61,foreground,.8f);
+        }
         var meta = preview ? (draggable ? "APERÇU · Glisser pour placer l’ancre" : "APERÇU · Données fictives")
             : item.Task.State is "summary" or "quota" ? item.Task.Project : $"Codex · {item.Task.Project}";
         if (item.Events > 1) meta += $" · {item.Events} événements regroupés";
-        Label(actionError ?? meta, compact ? 46 : 53, actionError is null ? secondary : new Vector4(ObsidianTheme.Red.X, ObsidianTheme.Red.Y, ObsidianTheme.Red.Z, alpha), .8f);
+        Label(actionError ?? meta, excerpt is null ? 49 : 80, actionError is null ? secondary : new Vector4(ObsidianTheme.Red.X, ObsidianTheme.Red.Y, ObsidianTheme.Red.Z, alpha), .72f);
         var actionLabel = item.Task.State == "summary" ? "Voir l’historique" : item.Task.State == "quota" ? "Voir le quota" : "Ouvrir dans Codex";
         var actionColor = preview || CodexTaskLink.Build(item.Task.Id) is null && item.Task.State is not ("summary" or "quota") ? secondary : accent;
         ObsidianTheme.DrawText(draw, actionLabel, p + new Vector2(16 * scale, size.Y - 28 * scale), actionColor, fontSize * .82f, appearance.Text);

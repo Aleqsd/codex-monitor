@@ -16,10 +16,12 @@ public sealed class QuietModeGate
     }
 }
 
-public enum MiniHudStyle { Fil, Capsule, Balise, Lisere, Totem, ObsidienneFine }
+public enum MiniHudStyle { Fil, Capsule, Balise, Lisere, Totem, ObsidienneFine, Ruban, Focus, TacheEpinglee }
 public static class MiniHudOptions
 {
-    public static readonly string[] Names = ["Fil", "Capsule", "Balise", "Liseré", "Totem", "Panneau fin"];
+    public static float FitScale(System.Numerics.Vector2 size, float requested, System.Numerics.Vector2 viewport) =>
+        Math.Min(requested,Math.Min((viewport.X-24)/size.X,(viewport.Y-24)/size.Y));
+    public static readonly string[] Names = ["Fil", "Capsule", "Balise", "Liseré", "Totem", "Panneau fin", "Ruban", "Focus", "Tâche épinglée"];
     public static System.Numerics.Vector2 Size(MiniHudStyle style, bool quota, HudAppearance? appearance = null)
     {
         var size = BaseSize(style, quota);
@@ -35,6 +37,9 @@ public static class MiniHudOptions
         MiniHudStyle.Lisere => new(quota ? 260 : 206, 34),
         MiniHudStyle.Totem => new(58, quota ? 132 : 100),
         MiniHudStyle.ObsidienneFine => new(310, 60),
+        MiniHudStyle.Ruban => new(quota ? 460 : 400, 34),
+        MiniHudStyle.Focus => new(320, 86),
+        MiniHudStyle.TacheEpinglee => new(350, 114),
         _ => new(quota ? 216 : 162, 36),
     };
 }

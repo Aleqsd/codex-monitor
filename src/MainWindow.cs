@@ -24,7 +24,7 @@ internal sealed class MainWindow : Window
     {
         this.plugin = plugin;
         settings = new SettingsPanel(plugin);
-        Size = new Vector2(760, 610); SizeCondition = ImGuiCond.FirstUseEver;
+        Size = new Vector2(1000, 700); SizeCondition = ImGuiCond.FirstUseEver;
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(560, 440), MaximumSize = new Vector2(float.MaxValue) };
     }
 
@@ -81,9 +81,9 @@ internal sealed class MainWindow : Window
         var width = ImGui.GetContentRegionAvail().X;
         var gap = 8 * s;
         var cell = (width - 3 * gap) / 4;
-        Summary("En cours", snapshot.Active, ObsidianTheme.Blue, cell, stateFilter == 1, () => stateFilter = stateFilter == 1 ? 0 : 1);
+        Summary("En cours", snapshot.Active, ObsidianTheme.Active, cell, stateFilter == 1, () => stateFilter = stateFilter == 1 ? 0 : 1);
         ImGui.SameLine(0, gap);
-        Summary("Prêtes", snapshot.Ready, ObsidianTheme.Blue, cell, stateFilter == 4, () => stateFilter = stateFilter == 4 ? 0 : 4, snapshot.ReadStateSupported);
+        Summary("Prêtes", snapshot.Ready, ObsidianTheme.Ready, cell, stateFilter == 4, () => stateFilter = stateFilter == 4 ? 0 : 4, snapshot.ReadStateSupported);
         if (ImGui.IsItemHovered()) ImGui.SetTooltip(snapshot.ReadStateSupported ? "Réponses non lues : le point bleu de Codex. Cet indicateur se synchronise avec l’application." : "Point bleu non fourni · lancer le relais 0.10.0 ou plus récent depuis Connexion");
         ImGui.SameLine(0, gap);
         Summary("À voir", snapshot.Attention, ObsidianTheme.Amber, cell, stateFilter == 2, () => stateFilter = stateFilter == 2 ? 0 : 2);
@@ -166,10 +166,11 @@ internal sealed class MainWindow : Window
             ImGui.BeginTooltip(); ImGui.PushTextWrapPos(470 * s); EmojiText.Wrapped(UnicodeText.Truncate(task.Title, 320), 470 * s); ImGui.TextDisabled(task.Project);
             if (task.Title.Length > 320) ImGui.TextDisabled("Titre complet : ouvrir la tâche dans Codex");
             ImGui.TextWrapped(task.ModelLabel + (task.ModelSource == "turn" ? " · dernière exécution" : " · réglage de la tâche"));
-            if (task.HasUnreadTurn is true) ImGui.TextColored(ObsidianTheme.Blue, "Point bleu actif dans Codex · réponse non lue");
+            if (task.HasUnreadTurn is true) ImGui.TextColored(ObsidianTheme.Ready, "Point bleu actif dans Codex · réponse non lue");
             if (task.HasUnreadTurn is null) ImGui.TextDisabled("Indicateur de lecture non fourni par le relais");
             if (!plugin.Config.Following.Allows(task, DateTimeOffset.UtcNow)) ImGui.TextDisabled("Notifications de cette tâche en pause");
             if (task.HasQuestion) ImGui.TextColored(ObsidianTheme.Amber, $"{task.QuestionIds.Length} {(task.QuestionIds.Length == 1 ? "question suivie" : "questions suivies")} · Répondre dans Codex");
+            if (plugin.Config.ShowQuestionExcerpts && task.QuestionExcerpt is { } excerpt) EmojiText.Wrapped(excerpt,470*s);
             if (hidden) ImGui.TextDisabled("Question masquée dans FF14");
             if (clickable) ImGui.TextDisabled("Cliquer pour les favoris, les alertes et les questions");
             ImGui.PopTextWrapPos(); ImGui.EndTooltip();
@@ -181,6 +182,12 @@ internal sealed class MainWindow : Window
             ImGui.TextWrapped("Ces réglages concernent l’affichage et les alertes dans FF14.");
             ImGui.Separator();
             if (ImGui.Selectable(task.IsFavorite ? "Retirer des favoris" : "Ajouter aux favoris")) plugin.ToggleFavorite(task.Id);
+            if (ImGui.Selectable(plugin.Config.PinnedHudTaskId == task.Id ? "Détacher du HUD" : "Épingler dans le HUD"))
+            {
+                plugin.Config.PinnedHudTaskId = plugin.Config.PinnedHudTaskId == task.Id ? null : task.Id;
+                if(plugin.Config.PinnedHudTaskId is not null) { plugin.Config.HudStyle=MiniHudStyle.TacheEpinglee; plugin.SetIndicator(IndicatorMode.MiniHud); }
+                else plugin.Save();
+            }
             if (!plugin.Config.Following.Allows(task, DateTimeOffset.UtcNow))
             { if (ImGui.Selectable("Réactiver les alertes")) plugin.MuteTask(task.Id, 0); }
             else
@@ -213,20 +220,25 @@ internal sealed class MainWindow : Window
     {
         using var font = UiFonts.Push(appearance.Text); using var palette = ObsidianTheme.Palette(appearance);
         var s = ObsidianTheme.UiScale; var inset = (Vector2.Abs(appearance.Text.Offset) + appearance.Padding) * s;
-        var color = task.ResponseReady ? ObsidianTheme.Blue : ObsidianTheme.State(task.State);
+        var color = ObsidianTheme.TaskState(task);
         draw.AddRectFilled(p, p + new Vector2(width, rowHeight - 2 * s), ObsidianTheme.U(new Vector4(color.X, color.Y, color.Z, (hovered ? 0.22f : 0.09f) * appearance.Opacity)));
         draw.AddRectFilled(p, p + new Vector2(3 * s, rowHeight - 2 * s), ObsidianTheme.U(color));
         var text = p + new Vector2(10, 5) * s + inset + appearance.Text.Offset * s;
-        var status = task.HasQuestion ? task.Label + " · ?" : task.Label;
+        var status = task.Label;
         var statusWidth = Math.Min(width * 0.38f, ImGui.CalcTextSize(status).X);
         if (task.HasUnreadTurn == true)
-        { draw.AddCircleFilled(text + new Vector2(4 * s, ImGui.GetFontSize() / 2), 3 * s, ObsidianTheme.U(ObsidianTheme.Blue)); text.X += 12 * s; }
+        { draw.AddCircleFilled(text + new Vector2(4 * s, ImGui.GetFontSize() / 2), 3 * s, ObsidianTheme.U(ObsidianTheme.Ready)); text.X += 12 * s; }
         var titleWidth = Math.Max(1, width - statusWidth - 30 * s - 2 * inset.X - (task.HasUnreadTurn == true ? 12 * s : 0));
         var title = ObsidianTheme.Fit(task.Title, titleWidth);
         var shift = (titleWidth - ObsidianTheme.Measure(title)) * (int)appearance.Alignment / 2;
         ObsidianTheme.DrawText(draw, title, text + new Vector2(shift, 0), ObsidianTheme.Text, ImGui.GetFontSize());
         ObsidianTheme.DrawText(draw, ObsidianTheme.Fit(status, statusWidth), new Vector2(p.X + width - statusWidth - 8 * s, text.Y), color, ImGui.GetFontSize());
-        ObsidianTheme.DrawText(draw, ObsidianTheme.Fit((task.IsFavorite ? "Favori · " : "") + task.Project + " · " + task.ModelLabel, width - 26 * s - 2 * inset.X - (task.HasUnreadTurn == true ? 12 * s : 0)), text + new Vector2(0, ImGui.GetFontSize() + 4 * s), ObsidianTheme.Muted, ImGui.GetFontSize() * 0.9f);
+        var metaSize = ImGui.GetFontSize()*.9f;
+        var interventionWidth = task.InterventionLabel is { } intervention ? ObsidianTheme.Measure(intervention,metaSize)+12*s : 0;
+        var metadata = task.ModelLabel + " · " + (task.IsFavorite ? "Favori · " : "") + task.Project;
+        ObsidianTheme.DrawText(draw, ObsidianTheme.Fit(metadata, width - 26 * s - 2 * inset.X - (task.HasUnreadTurn == true ? 12 * s : 0) - interventionWidth,metaSize), text + new Vector2(0, ImGui.GetFontSize() + 4 * s), ObsidianTheme.Muted, metaSize);
+        if(task.InterventionLabel is { } question)
+            ObsidianTheme.DrawText(draw,question,new(p.X+width-interventionWidth-8*s,text.Y+ImGui.GetFontSize()+4*s),ObsidianTheme.Amber,metaSize);
     }
 
     private void DrawHistory()

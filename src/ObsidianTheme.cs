@@ -27,12 +27,15 @@ internal static class ObsidianTheme
     internal static Vector4 Muted => Compact ? new(0.72f, 0.72f, 0.72f, 1) : new(0.58f, 0.65f, 0.62f, 1);
     internal static Vector4 Mint => current.Accent;
     internal static Vector4 Blue => Compact ? new(0.20f, 0.68f, 0.94f, 1) : new(0.48f, 0.72f, 0.83f, 1);
+    internal static Vector4 Active => new(0.83f, 0.86f, 0.85f, 1);
+    internal static Vector4 Ready => new(0.52f, 0.73f, 1, 1);
     internal static Vector4 Green => Compact ? new(0.42f, 0.82f, 0.52f, 1) : new(0.65f, 0.83f, 0.72f, 1);
     internal static Vector4 Amber => Compact ? new(1, 0.73f, 0.27f, 1) : new(0.92f, 0.74f, 0.45f, 1);
     internal static Vector4 Red => Compact ? new(0.96f, 0.35f, 0.35f, 1) : new(0.92f, 0.57f, 0.56f, 1);
     internal static uint U(Vector4 color) => ImGui.ColorConvertFloat4ToU32(color);
     internal static Vector4 State(string state) => state switch
-    { "active" or "summary" => Blue, "idle" => Green, "needsInput" or "needsApproval" or "question" or "quota" => Amber, "error" => Red, _ => Muted };
+    { "active" => Active, "idle" => Ready, "needsInput" or "needsApproval" or "question" or "quota" => Amber, "error" => Red, _ => Muted };
+    internal static Vector4 TaskState(MonitoredThread task) => task.State == "idle" ? task.ResponseReady ? Ready : Muted : State(task.State);
     private sealed class PaletteScope(SurfaceAppearance previous) : IDisposable { public void Dispose() => current = previous; }
     internal static IDisposable Palette(SurfaceAppearance? appearance)
     { var previous = current; current = appearance ?? Legacy; return new PaletteScope(previous); }

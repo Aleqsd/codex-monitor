@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
 
 // Retain structure needed to apply the stream's array patches, never message bodies,
-// questions, answer text, reasoning or tool output. Only explicit async questions count.
+// answers, reasoning or tool output. Explicit question headings are bounded previews
+// for the local HUD, never logged or written to disk.
 const scalar = value => typeof value === 'string' ? value.slice(0, 512) : null;
 const hasText = value => typeof value === 'string' && value.trim().length > 0;
+const excerpt = value => typeof value === 'string' ? Array.from(value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim()).slice(0, 240).join('') : '';
 const openReply = '<send_user_message_question_reply>';
 const closeReply = '</send_user_message_question_reply>';
 function replyIds(text) {
@@ -19,12 +21,12 @@ function replyIds(text) {
 }
 const content = { type: scalar, text: replyIds };
 const item = { id: scalar, type: scalar, delivery: scalar, status: scalar,
-  text: hasText, questions: [{ title: hasText }], content: [content], input: [content] };
+  text: hasText, questions: [{ title: excerpt }], content: [content], input: [content] };
 const turn = { turnId: scalar, status: scalar, items: [item],
   params: { model: scalar, effort: scalar, collaborationMode: { settings: { model: scalar, reasoning_effort: scalar } } } };
 const fields = {
   requests: [{ id: value => typeof value === 'string' || typeof value === 'number' ? String(value).slice(0, 512) : null,
-    method: scalar, params: { isBlocking: value => value === true, questions: [{ id: scalar }] } }],
+    method: scalar, params: { isBlocking: value => value === true, questions: [{ id: scalar, question: excerpt }] } }],
   turns: [turn],
   turnHistory: { kind: scalar, history: { entitiesByKey: { '*': turn },
     islands: [{ entries: [{ value: scalar }], newerBoundary: { status: scalar } }] } },
@@ -84,4 +86,29 @@ export function pendingQuestionIds(state) {
   }
   return [...requests, ...[...questions].filter(id => !answered.has(id))
     .map(id => hash(JSON.stringify([latest.turnId, id])))].slice(0, 100);
+}
+
+export function pendingQuestionPreviews(state) {
+  const pending = new Set(pendingQuestionIds(state));
+  const hash = id => createHash('sha256').update(id).digest('hex').slice(0, 32);
+  const previews = [];
+  for (const request of state.requests ?? []) {
+    const id = hash(`request:${request.id}`);
+    const text = request.params?.questions?.find(q => q.question)?.question;
+    if (pending.has(id) && text) previews.push({ id, text });
+  }
+  let latest;
+  if (state.turnHistory?.kind === 'canonical') {
+    const history = state.turnHistory.history;
+    const island = history?.islands?.at(-1);
+    if (island?.newerBoundary?.status === 'exhausted') latest = history.entitiesByKey?.[island.entries?.at(-1)?.value];
+  } else latest = state.turns?.at(-1);
+  for (const entry of latest?.items ?? []) {
+    if (entry.type !== 'agentMessage' || entry.delivery !== 'async') continue;
+    (entry.questions ?? []).forEach((question, index) => {
+      const id = hash(JSON.stringify([latest.turnId, JSON.stringify(['request_user_input_async', entry.id, index])]));
+      if (pending.has(id) && question.title) previews.push({ id, text: question.title });
+    });
+  }
+  return previews.slice(0, 100);
 }

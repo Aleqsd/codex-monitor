@@ -55,7 +55,17 @@ public sealed class NotificationQueue
     }
     public void Reconcile(MonitorSnapshot snapshot)
     {
-        lock (gate) items.RemoveAll(item => item.HistoryId != null && !IsRelevant(item.Task, snapshot));
+        lock (gate)
+        {
+            items.RemoveAll(item => item.HistoryId != null && !IsRelevant(item.Task, snapshot));
+            for(var i=0;i<items.Count;i++)
+            {
+                var item=items[i];
+                if(item.HistoryId is null || item.Task.QuestionIds.Length==0) continue;
+                var current=snapshot.Threads.FirstOrDefault(t=>t.Id==item.Task.Id);
+                if(current is not null) items[i]=item with {Task=item.Task with {PendingQuestionIds=item.Task.QuestionIds.Intersect(current.QuestionIds).ToArray(),QuestionPreviews=current.QuestionPreviews}};
+            }
+        }
     }
     internal static bool IsRelevant(MonitoredThread item, MonitorSnapshot snapshot) => item.State is "quota" or "summary" ||
         snapshot.Threads.Any(task => task.Id == item.Id && task.IsObserved && (item.State == "question"

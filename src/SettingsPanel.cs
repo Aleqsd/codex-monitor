@@ -7,144 +7,35 @@ namespace CodexMonitor;
 internal sealed partial class SettingsPanel(Plugin plugin)
 {
     internal int Category;
-    internal bool NotificationDesign;
     private readonly HudMotion hudMotion = new();
     private static readonly string[] ToneNames = ["Silencieux", "Verre", "Goutte", "Velours", "Fichier WAV"];
 
     internal void Draw()
     {
-        string[] tabs = ["Affichage", "Notifications", "Sons", "Connexion", "Apparence", "Visibilité", "Suivi"];
-        for (var i = 0; i < tabs.Length; i++)
+        Controls.Clear();
+        var s=ObsidianTheme.UiScale;
+        if(ImGui.BeginChild("settings-navigation",new Vector2(120*s,0),false))
         {
-            if (i > 0 && ImGui.GetItemRectMax().X - ImGui.GetWindowPos().X + ImGui.CalcTextSize(tabs[i]).X + 32 * ObsidianTheme.UiScale < ImGui.GetWindowWidth()) ImGui.SameLine();
-            if (ObsidianTheme.Tab(tabs[i], Category == i)) Category = i;
+            foreach(var (id,label) in new[]{(0,"HUD"),(1,"Notifications"),(2,"Sons"),(6,"Suivi"),(4,"Tâches"),(5,"Visibilité"),(3,"Connexion")})
+            { if(ImGui.Selectable(label,Category==id,ImGuiSelectableFlags.None,new Vector2(0,30*s))) Category=id; Remember("nav-"+id); }
         }
-        if (ImGui.BeginChild($"settings-body-{Category}", Vector2.Zero, false))
+        ImGui.EndChild(); ImGui.SameLine();
+        if(ImGui.BeginChild("settings-workspace",Vector2.Zero,false,ImGuiWindowFlags.NoScrollbar))
         {
-            switch (Category)
-            {
-                case 0: DrawDisplay(); break;
-                case 1: DrawNotifications(); break;
-                case 2: DrawSounds(); break;
-                case 4: DrawAppearance(); break;
-                case 5: DrawVisibility(); break;
-                case 6: DrawFollowing(); break;
-                default: DrawConnection(); break;
-            }
+            DrawSettingsWorkspace();
         }
         ImGui.EndChild();
     }
 
-    private void DrawDisplay()
-    {
-        var config = plugin.Config;
-        var s = ImGuiHelpers.GlobalScale;
-        ObsidianTheme.Section("Votre indicateur", "Choisissez ce qui reste visible lorsque la fenêtre est fermée.");
-        if (ImGui.RadioButton("Mini HUD", config.Indicator == IndicatorMode.MiniHud)) plugin.SetIndicator(IndicatorMode.MiniHud);
-        ImGui.SameLine();
-        if (ImGui.RadioButton("Texte de la barre", config.Indicator == IndicatorMode.Text)) plugin.SetIndicator(IndicatorMode.Text);
-        ImGui.SameLine();
-        if (ImGui.RadioButton("Masqué", config.Indicator == IndicatorMode.Hidden)) plugin.SetIndicator(IndicatorMode.Hidden);
-        ImGui.Spacing();
-        var snapshot = plugin.Snapshot;
-        var p = ImGui.GetCursorScreenPos();
-        if (config.Indicator == IndicatorMode.MiniHud)
-        {
-            var style = (int)config.HudStyle;
-            ImGui.SetNextItemWidth(220 * s);
-            if (ImGui.Combo("Format", ref style, MiniHudOptions.Names, MiniHudOptions.Names.Length))
-            { config.HudStyle = (MiniHudStyle)style; plugin.Save(); }
-            Toggle("Afficher le quota restant", config.ShowUsage, value => config.ShowUsage = value);
-            p = ImGui.GetCursorScreenPos();
-            var baseSize = MiniHudOptions.Size(config.HudStyle, config.ShowUsage, config.HudAppearance);
-            var size = baseSize * Math.Min(config.MiniHudScale * s, ImGui.GetContentRegionAvail().X / baseSize.X);
-            var motion = hudMotion.Update(snapshot, config.AnimateHudChanges, ImGui.GetIO().DeltaTime, config.UsagePeriod);
-            MiniHud.DrawFace(p, size, snapshot, plugin.Center.IsQuiet, false, config.MiniHudOpacity, config.HudStyle, config.ShowUsage, motion, config.HudAppearance, config.UsagePeriod);
-            ImGui.Dummy(size);
-            if (ImGui.IsItemHovered()) { ImGui.BeginTooltip(); MiniHud.DrawUsageDetails(snapshot, config.UsagePeriod); ImGui.EndTooltip(); }
-            ImGui.TextDisabled("Détails au survol · Tâches au clic");
-            Toggle("Animer les changements", config.AnimateHudChanges, value => config.AnimateHudChanges = value);
-            if (config.AnimateHudChanges) { ImGui.SameLine(); if (ImGui.SmallButton("Tester l’animation")) hudMotion.Highlight(); }
-            if (ImGui.Button(plugin.Hud.Editing ? "Verrouiller la position" : "Déplacer le mini HUD"))
-            { plugin.NotificationUi.SetPreview(false); plugin.Hud.SetEditing(!plugin.Hud.Editing); }
-            ImGui.SameLine();
-            if (ImGui.Button("Recentrer"))
-            { config.MiniHudAnchorX = 0.5f; config.MiniHudAnchorY = 0.08f; plugin.Hud.SetEditing(true); }
-            Float("Taille du HUD", config.MiniHudScale, 0.75f, 1.5f, "%.2f ×", value => config.MiniHudScale = value);
-            Float("Opacité du contenu", config.MiniHudOpacity * 100, 35, 100, "%.0f %%", value => config.MiniHudOpacity = value / 100);
-            DrawHudAppearance();
-        }
-        else if (config.Indicator == IndicatorMode.Text)
-        {
-            var label = snapshot.Connected ? $"Codex · {snapshot.Active} en cours · {snapshot.Attention} à voir" : "Codex hors ligne";
-            var size = new Vector2(Math.Min(320 * s, ImGui.GetContentRegionAvail().X), 52 * s);
-            ImGui.GetWindowDrawList().AddRectFilled(p, p + size, ObsidianTheme.U(ObsidianTheme.Surface), 8 * s);
-            ImGui.GetWindowDrawList().AddText(p + new Vector2(16, 17) * s, ObsidianTheme.U(ObsidianTheme.Text), label);
-            ImGui.Dummy(size);
-            ImGui.TextWrapped("Le compteur apparaît dans la barre d’informations de Dalamud. Un clic ouvre les tâches.");
-        }
-        else ImGui.TextWrapped("La fenêtre reste accessible avec /codex. Les notifications continuent de fonctionner.");
-        ImGui.Separator();
-        ObsidianTheme.Section("Liste des tâches");
-        Toggle("Afficher les tâches sans activité", config.ShowIdle, value => config.ShowIdle = value);
-        Toggle("Inclure les tâches non observées", config.ShowUnobserved, value => config.ShowUnobserved = value);
-        if (ImGui.Button("Quand afficher le plugin…")) Category = 5;
-    }
-
-    private void DrawHudAppearance()
-    {
-        var config = plugin.Config;
-        var appearance = config.HudAppearance!;
-        ObsidianTheme.Section("Fond du HUD", "La transparence du fond est indépendante du texte et des icônes.");
-        if (ImGui.SmallButton("Texte, police et thème")) { Category = 4; AppearanceScope = AppearanceTarget.Hud; }
-        var previewSize = MiniHudOptions.Size(config.HudStyle, config.ShowUsage, appearance)
-            * Math.Min(config.MiniHudScale * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X / MiniHudOptions.Size(config.HudStyle, config.ShowUsage, appearance).X);
-        MiniHud.DrawFace(ImGui.GetCursorScreenPos(), previewSize, plugin.Snapshot, plugin.Center.IsQuiet, false,
-            config.MiniHudOpacity, config.HudStyle, config.ShowUsage, appearance: appearance, usagePreference: config.UsagePeriod);
-        ImGui.Dummy(previewSize);
-        var mode = (int)appearance.Background;
-        ImGui.SetNextItemWidth(220 * ImGuiHelpers.GlobalScale);
-        if (ImGui.Combo("Visibilité du fond", ref mode, new[] { "Selon le design", "Afficher", "Masquer" }, 3))
-        { appearance.Background = (HudBackgroundMode)mode; plugin.Save(); }
-        var color = new Vector3(appearance.Red, appearance.Green, appearance.Blue);
-        ImGui.SetNextItemWidth(220 * ImGuiHelpers.GlobalScale);
-        if (ImGui.ColorEdit3("Couleur du fond", ref color, ImGuiColorEditFlags.NoInputs))
-        { appearance.Red = color.X; appearance.Green = color.Y; appearance.Blue = color.Z; }
-        if (ImGui.IsItemDeactivatedAfterEdit()) plugin.Save();
-        for (var i = 0; i < HudAppearance.Presets.Length; i++)
-        {
-            var preset = HudAppearance.Presets[i];
-            if (i > 0) ImGui.SameLine();
-            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(preset.Color, 1));
-            if (ImGui.SmallButton(preset.Name))
-            { appearance.Red = preset.Color.X; appearance.Green = preset.Color.Y; appearance.Blue = preset.Color.Z; plugin.Save(); }
-            ImGui.PopStyleColor();
-        }
-        Float("Opacité du fond", appearance.Opacity * 100, 0, 100, "%.0f %%", value => appearance.Opacity = value / 100);
-        Toggle("Contour du fond", appearance.Border, value => appearance.Border = value);
-        if (!appearance.HasBackground(config.HudStyle)) ImGui.TextDisabled("Fond masqué : choisir « Afficher » pour voir la couleur.");
-        if (ImGui.SmallButton("Réinitialiser l’apparence"))
-        { config.HudAppearance = new HudAppearance(); config.MiniHudOpacity = 0.94f; plugin.Save(); }
-    }
-
     private void DrawNotifications()
     {
-        if (ObsidianTheme.Tab("Alertes et placement", !NotificationDesign)) NotificationDesign = false;
-        ImGui.SameLine();
-        if (ObsidianTheme.Tab("Design", NotificationDesign)) NotificationDesign = true;
-        if (NotificationDesign)
-        {
-            var previousScope = AppearanceScope;
-            AppearanceScope = AppearanceTarget.Notification;
-            try { DrawAppearanceEditor(); }
-            finally { AppearanceScope = previousScope; }
-            return;
-        }
         var c = plugin.Config; var n = plugin.NotificationUi;
         ObsidianTheme.Section("Ce qui mérite votre attention");
         Toggle("Une réponse est prête", c.NotifyOnIdle, value => c.NotifyOnIdle = value);
         Toggle("Une réponse attendue, une approbation ou une erreur", c.NotifyOnAttention, value => c.NotifyOnAttention = value);
         Toggle("Une question pendant que Codex continue", c.NotifyOnQuestions, value => c.NotifyOnQuestions = value);
+        Toggle("Afficher un extrait des questions",c.ShowQuestionExcerpts,value=>c.ShowQuestionExcerpts=value);
+        ImGui.TextWrapped("Les extraits disponibles restent temporaires et ne sont pas enregistrés dans l’historique.");
         Toggle("Regrouper les alertes rapprochées d’une tâche", c.GroupNotificationBursts, value => c.GroupNotificationBursts = value);
         ImGui.TextWrapped("Regroupement sur 2 s. Les erreurs apparaissent immédiatement ; les alertes dépassées disparaissent.");
         ImGui.TextDisabled("Pas d’alerte à la première connexion ni à la reconnexion.");
@@ -154,7 +45,6 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         Toggle("Pendant les cinématiques", c.QuietInCutscene, value => c.QuietInCutscene = value);
         ImGui.Separator();
         ObsidianTheme.Section("Notifications");
-        if (ImGui.SmallButton("Personnaliser l’apparence")) NotificationDesign = true;
         if (ImGui.Button(n.Preview ? "Terminer le placement" : "Placer les notifications")) { plugin.Hud.SetEditing(false); n.SetPreview(!n.Preview); }
         ImGui.SameLine();
         if (ImGui.Button("Recentrer"))
@@ -195,10 +85,10 @@ internal sealed partial class SettingsPanel(Plugin plugin)
     private void DrawSounds()
     {
         var sound = plugin.Config.Sounds;
-        ObsidianTheme.Section("Une présence discrète", "Des sons courts, avec un volume indépendant du jeu.");
+        ObsidianTheme.Section("Sons des notifications", "Des sons courts, avec un volume indépendant du jeu.");
         Toggle("Activer les sons", sound.Enabled, value => sound.Enabled = value);
         Float("Volume", sound.Volume * 100, 0, 100, "%.0f %%", value => sound.Volume = value / 100);
-        ImGui.TextDisabled("Silence pendant la pause des notifications · Au plus un son toutes les 2 s");
+        ImGui.TextWrapped("Silence pendant la pause des notifications · Au plus un son toutes les 2 s");
         if (plugin.Center.IsQuiet) ImGui.TextColored(ObsidianTheme.Amber, "Notifications en pause : les écoutes sont aussi silencieuses.");
         ImGui.Separator();
         SoundRow("Réponse prête", "idle", sound.Completion, sound.CompletionFile, value => sound.Completion = value, value => sound.CompletionFile = value);
@@ -315,8 +205,6 @@ internal sealed partial class SettingsPanel(Plugin plugin)
     }
     private void Float(string label, float value, float min, float max, string format, Action<float> set)
     {
-        ImGui.SetNextItemWidth(220 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderFloat(label, ref value, min, max, format)) set(value);
-        if (ImGui.IsItemDeactivatedAfterEdit()) plugin.Save();
+        SettingFloat(label,value,min,max,format,set);
     }
 }

@@ -8,7 +8,7 @@ import { CodexObserver } from './observer.mjs';
 import { UsageObserver, findCodexExecutable } from './usage.mjs';
 import { appendEvent } from './files.mjs';
 
-const relayVersion = '0.10.0';
+const relayVersion = '0.11.0';
 
 const args = process.argv.slice(2);
 const value = (name, fallback) => { const index = args.indexOf(name); return index < 0 ? fallback : args[index + 1]; };

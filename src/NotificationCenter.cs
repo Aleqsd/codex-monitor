@@ -12,7 +12,8 @@ public sealed class NotificationHistory
     public NotificationHistory(IEnumerable<HistoryEntry>? saved = null)
     {
         entries = (saved ?? []).Where(item => item is { Task: not null } && item.Id > 0 && item.Id < long.MaxValue - Capacity)
-            .DistinctBy(item => item.Id).OrderByDescending(item => item.Id).Take(Capacity).ToList();
+            .DistinctBy(item => item.Id).OrderByDescending(item => item.Id).Take(Capacity)
+            .Select(item => item with { Task = item.Task with { QuestionPreviews = null } }).ToList();
         sequence = entries.Count == 0 ? 0 : entries[0].Id;
     }
 
@@ -22,7 +23,8 @@ public sealed class NotificationHistory
         lock (gate)
         {
             var entry = new HistoryEntry(++sequence, task, now);
-            entries.Insert(0, entry);
+            // Question excerpts are transient UI context, never persisted in history/config.
+            entries.Insert(0, entry with { Task = task with { QuestionPreviews = null } });
             if (entries.Count > Capacity) entries.RemoveAt(Capacity);
             return entry;
         }
@@ -148,6 +150,7 @@ public sealed class NotificationCenter(NotificationHistory history, Notification
             queue.Add(burst.Entry.Task, duration, burst.Entry.Id, events: burst.Count);
             if (sound == null || Priority(burst.Entry.Task.State) > Priority(sound)) sound = burst.Entry.Task.State;
         }
+        queue.Reconcile(snapshot);
         // A toast interrupted near its expiry needs a full reading interval on return.
         if (wasQuiet && !quiet) queue.RestartTimers();
         if (wasQuiet && !quiet && snapshot.Connected && deferred.Count > 0)

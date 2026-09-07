@@ -3,9 +3,14 @@ using System.Text.Json.Serialization;
 
 namespace CodexMonitor;
 
+public sealed record QuestionPreview(string Id, string Text);
+
 public sealed record MonitoredThread(string Id, string Title, string Project, string Model, string State, string[]? PendingQuestionIds = null, string[]? HiddenQuestionIds = null,
-    string? ReasoningEffort = null, bool? HasUnreadTurn = null, string? LatestTurnStatus = null, string? ProjectId = null, bool IsFavorite = false, string? ModelSource = null)
+    string? ReasoningEffort = null, bool? HasUnreadTurn = null, string? LatestTurnStatus = null, string? ProjectId = null, bool IsFavorite = false, string? ModelSource = null,
+    QuestionPreview[]? QuestionPreviews = null)
 {
+    public string? QuestionExcerpt => QuestionPreviews?.FirstOrDefault(q => QuestionIds.Contains(q.Id))?.Text;
+    public string? InterventionLabel => HasQuestion && State is "active" or "idle" ? "Question posée" : null;
     public string ProjectKey => ProjectId ?? Project;
     public bool ResponseReady => State == "idle" && HasUnreadTurn == true;
     public string ModelLabel => Model.Length == 0 ? "Modèle non fourni" : Model + " · " + (ReasoningEffort ?? "effort non fourni");
@@ -80,7 +85,8 @@ public static class MonitorContract
                 HasUnreadTurn: row.Availability == "live" && state != "unobserved" && row.HasUnreadTurn.ValueKind is JsonValueKind.True or JsonValueKind.False ? row.HasUnreadTurn.GetBoolean() : null,
                 LatestTurnStatus: row.LatestTurnStatus.ValueKind == JsonValueKind.String && row.LatestTurnStatus.GetString() is "completed" or "inProgress" or "interrupted" or "failed" ? row.LatestTurnStatus.GetString() : null,
                 ProjectId: Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes((row.Project ?? "").Replace('\\', '/').TrimEnd('/').ToUpperInvariant()))),
-                ModelSource: row.ModelSource.ValueKind == JsonValueKind.String && row.ModelSource.GetString() == "turn" ? "turn" : "thread"));
+                ModelSource: row.ModelSource.ValueKind == JsonValueKind.String && row.ModelSource.GetString() == "turn" ? "turn" : "thread",
+                QuestionPreviews: ReadQuestionPreviews(row.QuestionPreviews, questions)));
         }
         return new MonitorSnapshot(true, now, threads.AsReadOnly(), null, response.QuestionTrackingSupported, AccountUsage.Parse(response.Usage), response.Usage.ValueKind != JsonValueKind.Undefined,
             relayVersion, diagnostic, response.TaskMetadataSupported.ValueKind == JsonValueKind.True);
@@ -91,6 +97,15 @@ public static class MonitorContract
         if (string.IsNullOrWhiteSpace(value)) return fallback;
         var cleaned = string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         return UnicodeText.Truncate(cleaned, maxLength);
+    }
+    private static QuestionPreview[] ReadQuestionPreviews(JsonElement value, string[] ids)
+    {
+        if (value.ValueKind != JsonValueKind.Array || ids.Length == 0) return [];
+        return value.EnumerateArray().Take(100).Where(q => q.ValueKind == JsonValueKind.Object
+            && q.TryGetProperty("id", out var id) && id.ValueKind == JsonValueKind.String && ids.Contains(id.GetString())
+            && q.TryGetProperty("text", out var text) && text.ValueKind == JsonValueKind.String)
+            .Select(q => new QuestionPreview(q.GetProperty("id").GetString()!, Clean(q.GetProperty("text").GetString(), "", 240)))
+            .Where(q => q.Text.Length > 0).DistinctBy(q => q.Id).ToArray();
     }
     private static string? Effort(JsonElement value) => value.ValueKind == JsonValueKind.String
         && value.GetString() is "none" or "minimal" or "low" or "medium" or "high" or "xhigh" or "max" or "ultra" ? value.GetString() : null;
@@ -128,6 +143,7 @@ public static class MonitorContract
         public string Availability { get; set; } = "unobserved";
         public DateTimeOffset? LastConfirmedAt { get; set; }
         public string[]? PendingQuestionIds { get; set; }
+        public JsonElement QuestionPreviews { get; set; }
     }
 }
 

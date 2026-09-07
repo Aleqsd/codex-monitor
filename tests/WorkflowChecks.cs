@@ -91,6 +91,29 @@ internal static class WorkflowChecks
         Check(HistoryQuery.Select(history.Entries,"",HistoryFilter.Quota,false,history,active).Length==1,"Quota history filter");
         var diagnostic=new DiagnosticReport(false,now,[new("Codex",true,"Application connectée"),new("Quota / CLI",false,"Connexion requise","codex login")]);
         Check(!diagnostic.CopyText().Contains(task.Title)&&!diagnostic.CopyText().Contains(task.Project)&&diagnostic.CopyText().Contains("codex login"),"Shareable diagnosis is bounded to technical data");
+        var previewId1=new string('a',32);var previewId2=new string('b',32);
+        var question=task with {PendingQuestionIds=[previewId1,previewId2],QuestionPreviews=[new(previewId1,"Premier choix ?"),new(previewId2,"Deuxième choix ?")]};
+        Check(question.Label=="En cours"&&question.InterventionLabel=="Question posée","Question and running status independent");
+        Check(question.QuestionExcerpt=="Premier choix ?","Preview belongs to pending identity");
+        Check((question with {PendingQuestionIds=[previewId2]}).QuestionExcerpt=="Deuxième choix ?","Resolved question no longer supplies excerpt");
+        Check((question with {PendingQuestionIds=[]}).QuestionExcerpt is null,"Hidden questions have no excerpt");
+        string ExcerptPayload(int age,object previews)=>JsonSerializer.Serialize(new {schemaVersion=1,connected=true,generatedAt=now,questionTrackingSupported=true,
+            threads=new[]{new{id,title="Demo",state="active",availability="live",lastConfirmedAt=now.AddSeconds(-age),pendingQuestionIds=new[]{previewId1},questionPreviews=previews}}});
+        var parsed=MonitorContract.Parse(ExcerptPayload(0,new[]{new{id=previewId1,text="Un choix\n"+new string('é',400)},new{id=previewId2,text="autre"}}),now).Threads.Single();
+        Check(parsed.QuestionPreviews!.Length==1&&parsed.QuestionExcerpt!.Length<=241&&!parsed.QuestionExcerpt.Contains('\n'),"Contract bounds text and accepts only pending IDs");
+        Check(MonitorContract.Parse(ExcerptPayload(31,new[]{new{id=previewId1,text="ancien"}}),now).Threads.Single().QuestionExcerpt is null,"Stale owner drops excerpts");
+        Check(MonitorContract.Parse(ExcerptPayload(0,new{malformed=true}),now).Threads.Single().QuestionExcerpt is null,"Malformed optional preview does not break monitor");
+        var previewHistory=new NotificationHistory();var previewEvent=previewHistory.Add(question,now);
+        Check(previewEvent.Task.QuestionExcerpt is not null,"Transient event retains context for burst notification");
+        Check(previewHistory.Entries.Single().Task.QuestionPreviews is null&&!JsonSerializer.Serialize(previewHistory.Entries).Contains("choix"),"Stored history excludes question text");
+        Check(new NotificationHistory([previewEvent]).Entries.Single().Task.QuestionPreviews is null,"Loaded history strips legacy excerpts");
+        var previewsQueue=new NotificationQueue();previewsQueue.Add(question with{State="question"},7,1);
+        var remaining=question with{PendingQuestionIds=[previewId2],QuestionPreviews=[new(previewId2,"Choix reformulé ?")]};
+        previewsQueue.Advance(1,3);previewsQueue.Reconcile(snapshot with{Threads=[remaining]});
+        Check(previewsQueue.Visible()[0].Task.QuestionExcerpt=="Choix reformulé ?"&&previewsQueue.Visible()[0].Age==1,"Visible excerpt refreshes after partial reply without resetting timer");
+        previewsQueue.Reconcile(snapshot with{Threads=[remaining with{PendingQuestionIds=[]}]});
+        Check(previewsQueue.Count==0,"All questions resolved removes popup");
+        Check(Enum.GetValues<MiniHudStyle>().Length==9&&(int)MiniHudStyle.ObsidienneFine==5,"New HUD IDs preserve all saved layouts");
         return checks;
     }
 }

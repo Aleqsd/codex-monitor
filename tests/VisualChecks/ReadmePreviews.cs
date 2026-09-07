@@ -10,7 +10,7 @@ internal static unsafe partial class Program
         Directory.CreateDirectory(output);
         foreach (var notifications in new[] { false, true })
         {
-            Initialize(notifications ? 680 : 940, notifications ? 750 : 600, 1);
+            Initialize(notifications ? 680 : 940, notifications ? 850 : 600, 1);
             for (var frame = 0; frame < 3; frame++)
             {
                 ImGui.NewFrame(); ObsidianTheme.Push(ObsidianTheme.Chrome);
@@ -34,7 +34,7 @@ internal static unsafe partial class Program
                         draw.AddText(new(24, y), ObsidianTheme.U(ObsidianTheme.Muted), skin.ToString());
                         var size = NotificationOverlay.LogicalSize(appearance) * 1.25f;
                         NotificationOverlay.DrawFace(draw, new(24, y + 25), size, 1.25f,
-                            new NotificationItem(-1, new(state == "summary" ? "quiet-summary" : DemoId, title, project, "", state), 1.5f, 7), appearance);
+                            new NotificationItem(-1, NotificationOverlay.Example(state) with {Id=state == "summary" ? "quiet-summary" : DemoId,Title=title,Project=project}, 1.5f, 7), appearance);
                         y += size.Y + 54;
                     }
                 }
@@ -45,7 +45,7 @@ internal static unsafe partial class Program
                          new("demo2", "Vérifier un écran", "Démo", "", "active"),
                          new("demo3", "Livrer un correctif", "Démo", "gpt-6-astra", "idle", HasUnreadTurn:true, LatestTurnStatus:"completed")], null, true,
                         new AccountUsage(DateTimeOffset.UtcNow, [new(48, 10080, null)]));
-                    foreach (var style in Enum.GetValues<MiniHudStyle>())
+                    foreach (var style in Enum.GetValues<MiniHudStyle>().Where(style=>(int)style<6))
                     {
                         ImGui.PushID((int)style);
                         var index = (int)style; var p = new Vector2(24 + (index % 2) * 460, 90 + (index / 2) * 145);
@@ -63,6 +63,28 @@ internal static unsafe partial class Program
             Render(Path.Combine(output, notifications ? "notifications.ppm" : "mini-huds.ppm"));
             FinishRevisionView();
         }
-        Console.WriteLine("Rendered two compact README galleries from the real notification and HUD components.");
+        Initialize(720,520,1);UiFixture();
+        for(var frame=0;frame<3;frame++)
+        {
+            ImGui.NewFrame();ObsidianTheme.Push(ObsidianTheme.Chrome);
+            ImGui.SetNextWindowPos(Vector2.Zero);ImGui.SetNextWindowSize(new(screenWidth,screenHeight));
+            ImGui.Begin("Nouveaux HUD",ImGuiWindowFlags.NoTitleBar|ImGuiWindowFlags.NoMove|ImGuiWindowFlags.NoResize|ImGuiWindowFlags.NoSavedSettings);
+            var draw=ImGui.GetWindowDrawList();
+            draw.AddText(new(24,20),ObsidianTheme.U(ObsidianTheme.Text),"Ruban · Focus · Tâche épinglée");
+            draw.AddText(new(24,45),ObsidianTheme.U(ObsidianTheme.Muted),"Rendu ImGui hors jeu · Données fictives");
+            var y=82f;
+            foreach(var style in new[]{MiniHudStyle.Ruban,MiniHudStyle.Focus,MiniHudStyle.TacheEpinglee})
+            {
+                ImGui.PushID((int)style);draw.AddText(new(24,y),ObsidianTheme.U(ObsidianTheme.Muted),MiniHudOptions.Names[(int)style]);
+                var size=MiniHudOptions.Size(style,true,plugin.Config.HudAppearance)*1.25f;
+                var p=new Vector2(24,y+24);
+                MiniHud.DrawFace(p,size,plugin.Snapshot,false,false,1,style,true,appearance:plugin.Config.HudAppearance,pinnedTaskId:DemoId);
+                PauseControls.Icon(plugin,p+new Vector2(size.X+5,Math.Max(0,(size.Y-30)/2)),30);
+                y+=size.Y+51;ImGui.PopID();
+            }
+            ImGui.End();ObsidianTheme.Pop();ImGui.Render();
+        }
+        Render(Path.Combine(output,"new-huds.ppm"));FinishRevisionView();
+        Console.WriteLine("Rendered three README galleries from the native components.");
     }
 }
