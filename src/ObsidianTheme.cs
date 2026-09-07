@@ -82,8 +82,10 @@ internal static class ObsidianTheme
         ImGui.PopStyleColor(2); return clicked;
     }
     internal static void DrawText(ImDrawListPtr draw, string text, Vector2 position, Vector4 color, float size, TextAppearance? appearance = null)
+        => EmojiText.Draw(draw, text, position, color, size, appearance ?? current.Text);
+    internal static float Measure(string text, float fontSize = 0) => EmojiText.Measure(text, fontSize > 0 ? fontSize : ImGui.GetFontSize());
+    internal static void DrawPlainText(ImDrawListPtr draw, string text, Vector2 position, Vector4 color, float size, TextAppearance style)
     {
-        var style = appearance ?? current.Text;
         var font = ImGui.GetFont(); var edge = new Vector4(0, 0, 0, color.W * 0.90f);
         var pixel = Math.Max(1, size / 17);
         if (style.Edge == TextEdge.Shadow) draw.AddText(font, size, position + new Vector2(pixel), U(edge), text);
@@ -99,15 +101,15 @@ internal static class ObsidianTheme
     internal static string Fit(string value, float width, float fontSize = 0)
     {
         if (width <= 0) return "";
-        var ratio = fontSize > 0 ? fontSize / ImGui.GetFontSize() : 1;
-        if (ImGui.CalcTextSize(value).X * ratio <= width) return value;
-        var low = 0; var high = value.Length;
+        if (Measure(value, fontSize) <= width) return value;
+        if (Measure("…", fontSize) > width) return "";
+        var boundaries = System.Globalization.StringInfo.ParseCombiningCharacters(value);
+        var low = 0; var high = boundaries.Length - 1;
         while (low < high)
         {
             var mid = (low + high + 1) / 2;
-            if (ImGui.CalcTextSize(value[..mid] + "…").X * ratio <= width) low = mid; else high = mid - 1;
+            if (Measure(value[..boundaries[mid]] + "…", fontSize) <= width) low = mid; else high = mid - 1;
         }
-        if (low > 0 && char.IsHighSurrogate(value[low - 1])) low--;
-        return value[..low] + "…";
+        return value[..boundaries[low]] + "…";
     }
 }

@@ -10,7 +10,7 @@ internal static unsafe partial class Program
         Directory.CreateDirectory(output);
         foreach (var notifications in new[] { false, true })
         {
-            Initialize(notifications ? 680 : 800, notifications ? 650 : 500, 1);
+            Initialize(notifications ? 680 : 800, notifications ? 750 : 500, 1);
             for (var frame = 0; frame < 3; frame++)
             {
                 ImGui.NewFrame(); ObsidianTheme.Push(ObsidianTheme.Chrome);
@@ -23,9 +23,9 @@ internal static unsafe partial class Program
                 {
                     var rows = new[]
                     {
-                        (MonitorSkin.LMeter, "idle", "Préparer la prochaine version", "Projet démo"),
-                        (MonitorSkin.Obsidienne, "question", "Comparer les variantes de l’accueil", "Projet démo"),
-                        (MonitorSkin.Nuit, "summary", "2 tours terminés · 1 réponse attendue", "Cliquer pour consulter l’historique"),
+                        (MonitorSkin.LMeter, "idle", "🚀 Préparer la prochaine version", "Projet démo"),
+                        (MonitorSkin.Obsidienne, "question", "🎨 Comparer les variantes de l’accueil", "Projet démo"),
+                        (MonitorSkin.Nuit, "summary", "2 réponses prêtes · 1 réponse attendue", "Cliquer pour consulter l’historique"),
                     };
                     var y = 86f;
                     foreach (var (skin, state, title, project) in rows)
@@ -34,7 +34,7 @@ internal static unsafe partial class Program
                         draw.AddText(new(24, y), ObsidianTheme.U(ObsidianTheme.Muted), skin.ToString());
                         var size = NotificationOverlay.LogicalSize(appearance) * 1.25f;
                         NotificationOverlay.DrawFace(draw, new(24, y + 25), size, 1.25f,
-                            new NotificationItem(-1, new("example", title, project, "", state), 1.5f, 7), appearance);
+                            new NotificationItem(-1, new(state == "summary" ? "quiet-summary" : DemoId, title, project, "", state), 1.5f, 7), appearance);
                         y += size.Y + 54;
                     }
                 }

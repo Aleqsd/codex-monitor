@@ -42,7 +42,7 @@ internal static unsafe partial class Program
     private static void RevisionSmoke()
     {
         const string output = "artifacts/revision-smoke"; Directory.CreateDirectory(output);
-        Initialize(800, 900, 1);
+        Initialize(800, 924, 1);
         for (var n=0; n<3; n++) Frame();
         Click(100,205); Render(Path.Combine(output,"menu.ppm"));
         Click(170,302);
@@ -53,9 +53,9 @@ internal static unsafe partial class Program
         if (!window.ShowSettings || Panel.Category != 1 || !Panel.NotificationDesign) throw new Exception("Direct notification design navigation failed.");
         Click(232,274);
         if (plugin.Config.ToastAppearance!.Skin != MonitorSkin.Nuit || plugin.Config.WindowAppearance!.Skin != MonitorSkin.Obsidienne) throw new Exception("Notification theme changed the data appearance.");
-        Click(210,510); Click(25,570); Click(440,630); Click(25,665); Click(25,700);
+        Click(210,534); Click(25,594); Click(440,654); Click(25,689); Click(25,724);
         if (plugin.Config.ToastAppearance.Opacity > .35f || plugin.Config.ToastAppearance.Border || plugin.Config.ToastAppearance.ToastCornerRadius is not (> 12 and < 16) || plugin.Config.ToastAppearance.ToastShowIcon || plugin.Config.ToastAppearance.ToastShowTimer) throw new Exception("Notification design controls failed.");
-        Click(150,795); Click(60,685); Click(755,877);
+        Click(150,819); Click(60,709); Click(755,901);
         if (plugin.Config.ToastAppearance.Text.Font != MonitorFont.Dalamud || plugin.Config.ToastAppearance.Text.Size < 23) { Render(Path.Combine(output,"text-control-failure.ppm")); throw new Exception($"Notification text controls failed: {plugin.Config.ToastAppearance.Text.Font}, {plugin.Config.ToastAppearance.Text.Size}."); }
         Render(Path.Combine(output,"design-custom.ppm"));
         window.ShowSettings = true; Panel.Category = 3; Click(780,880);

@@ -45,10 +45,13 @@ namespace CodexMonitor
         internal RelayLauncher Relay { get; } = new(Path.Combine(Path.GetTempPath(), "codex-monitor-visual-unused"));
         internal int SaveCount;
         internal int OpenCount;
+        internal readonly List<Uri> OpenedLinks = new();
+        internal CodexTaskLink TaskLink { get; }
         internal Plugin()
         {
+            TaskLink = new(uri => { lock (OpenedLinks) OpenedLinks.Add(uri); });
             Config.Normalize();
-            NotificationUi = new NotificationOverlay(Config, Save, _ => { });
+            NotificationUi = new NotificationOverlay(Config, Save, _ => { OpenCount++; }, TaskLink);
             Center = new NotificationCenter(History, NotificationUi.Queue);
             Hud = new MiniHud(this, () => { OpenCount++; });
             History.Add(Snapshot.Threads[3], DateTimeOffset.Now.AddMinutes(-3));

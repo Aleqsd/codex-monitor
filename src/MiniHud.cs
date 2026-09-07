@@ -24,7 +24,7 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
         var usage = snapshot.CurrentUsage;
         var muted = ObsidianTheme.Muted;
         var activeColor = snapshot.Connected && snapshot.Active > 0 ? ObsidianTheme.Blue : muted;
-        var quotaColor = usage is null ? muted : usage.RemainingPercent <= 10 ? ObsidianTheme.Amber : ObsidianTheme.Mint;
+        var quotaColor = QuotaColor(usage?.RemainingPercent);
         var attentionColor = snapshot.Connected && snapshot.Attention > 0 ? ObsidianTheme.Amber : muted;
         var transparent = style is MiniHudStyle.Fil or MiniHudStyle.Lisere;
         var background = appearance?.Color ?? ObsidianTheme.Surface;
@@ -117,7 +117,6 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
                 Animated(status, baseSize.X - 12 - Width(status), 8, activeColor, animation.ActivePulse);
                 Animated(!snapshot.Connected ? "Relais absent" : snapshot.Attention > 0 ? questionsOnly ? $"{alert} question{(snapshot.Attention > 1 ? "s" : "")}" : $"{alert} à voir" : "Aucune alerte", 12, 33, attentionColor, animation.AttentionPulse, 12);
                 if (showUsage) Animated(percent + " restants", baseSize.X - 12 - Width(percent + " restants", 12), 33, quotaColor, animation.UsagePulse, 12);
-                Bar(10, 57, baseSize.X - 20);
                 break;
             default:
                 Diamond(17, 18); Animated(active, 32, 10, activeColor, animation.ActivePulse);
@@ -128,6 +127,9 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
         if (editing) draw.AddRect(p, p + size, Color(ObsidianTheme.Blue), 4 * s);
         if (quiet) draw.AddCircleFilled(At(baseSize.X - 4, baseSize.Y - 4), 2 * s, Color(ObsidianTheme.Amber), 12);
     }
+
+    internal static Vector4 QuotaColor(double? remaining) => remaining is null ? ObsidianTheme.Muted
+        : remaining < 20 ? ObsidianTheme.Red : remaining <= 50 ? ObsidianTheme.Amber : ObsidianTheme.Green;
 
     internal void Draw()
     {
@@ -167,12 +169,12 @@ internal sealed class MiniHud(Plugin plugin, Action openMonitor)
                     else
                     {
                         var tasks = snapshot.Threads.Where(task => task.IsObserved).OrderBy(task => task.NeedsAttention ? 0 : task.State == "active" ? 1 : 2).ToArray();
-                        foreach (var task in tasks.Take(8)) ImGui.TextUnformatted($"{task.Label}{(task.HasQuestion ? " · ?" : "")} · {task.Title}");
+                        foreach (var task in tasks.Take(8)) EmojiText.Wrapped($"{task.Label}{(task.HasQuestion ? " · ?" : "")} · {task.Title}", 430 * ImGuiHelpers.GlobalScale);
                         if (tasks.Length > 8) ImGui.TextDisabled($"+ {tasks.Length - 8} tâches");
                         if (tasks.Length == 0) ImGui.TextDisabled("Aucune tâche observée");
                     }
                     ImGui.TextDisabled("Cliquer pour ouvrir les tâches");
-                    if (plugin.Center.IsQuiet) ImGui.TextDisabled($"Mode discret · {plugin.Center.DeferredCount} alertes différées");
+                    if (plugin.Center.IsQuiet) ImGui.TextDisabled($"Notifications en pause · {plugin.Center.DeferredCount} alertes différées");
                 }
                 ImGui.PopTextWrapPos(); ImGui.EndTooltip();
             }

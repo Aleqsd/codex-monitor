@@ -8,6 +8,9 @@ Pré requis : Windows, .NET 10.0.400 et les bibliothèques installées de Dalamu
 $env:DALAMUD_HOME = "$env:APPDATA\XIVLauncher\addon\Hooks\15.0.3.2"
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release -- artifacts/visual
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --visibility-smoke
+dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --navigation-smoke
+dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --navigation-preview artifacts/navigation
+dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --emoji-raster
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --visibility-preview artifacts/visibility
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --readme-previews artifacts/readme
 dotnet run --project tests/VisualChecks/VisualChecks.csproj -c Release --no-build -- --revision-smoke
@@ -44,3 +47,5 @@ Les données sont fictives. Ces contrôles ne prouvent ni l’apparence exacte s
 `--readme-previews artifacts/readme` dessine deux planches compactes pour le README : les six mini HUD et trois notifications. Il appelle les fonctions de dessin réelles avec des titres et quotas fictifs ; aucune DLL du plugin n’est recompilée et aucune fenêtre du jeu n’est manipulée.
 
 Le harnais charge Segoe UI et Consolas depuis Windows. Expressway n’est pas présente dans cet environnement : les vues correspondantes montrent le repli, sans prétendre valider son fichier. Le chargement via l’atlas géré de Dalamud reste à vérifier en jeu.
+
+`--navigation-preview` produit 21 vues : tâches avec emojis, historique, réglages des alertes, notifications à 100/150/200 % et Panneau fin avec quatre états de quota. `--navigation-smoke` clique les véritables boutons et vérifie leurs destinations avec un lancement Windows simulé, le résumé, les aperçus inertes et les seuils du quota. `--emoji-raster` utilise réellement DirectWrite/Direct2D/WIC et vérifie six glyphes colorés, dont une séquence avec teinte de peau et jointure. `tests/CoreChecks.csproj --presentation-checks` ajoute 32 contrôles de graphèmes, limites de titres, validation des identifiants, double clic et erreur d’ouverture.

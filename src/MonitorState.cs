@@ -12,7 +12,7 @@ public sealed record MonitoredThread(string Id, string Title, string Project, st
     public string Label => State switch
     {
         "active" => "En cours",
-        "idle" => "Au repos",
+        "idle" => "Sans activité",
         "needsInput" => "Réponse attendue",
         "needsApproval" => "Approbation",
         "error" => "Erreur",
@@ -70,7 +70,7 @@ public static class MonitorContract
     {
         if (string.IsNullOrWhiteSpace(value)) return fallback;
         var cleaned = string.Join(' ', value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
-        return cleaned.Length <= maxLength ? cleaned : cleaned[..maxLength] + "…";
+        return UnicodeText.Truncate(cleaned, maxLength);
     }
 
     private static string ProjectName(string? value)

@@ -4,7 +4,7 @@ using Dalamud.Interface.Utility;
 
 namespace CodexMonitor;
 
-internal sealed class NotificationOverlay(Configuration config, Action save, Action<NotificationItem> openMonitor)
+internal sealed class NotificationOverlay(Configuration config, Action save, Action<NotificationItem> openMonitor, CodexTaskLink? taskLink = null)
 {
     internal readonly NotificationQueue Queue = new();
     internal bool Preview;
@@ -14,7 +14,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
     private Vector2 dragOrigin;
     private Vector2 dragMouseOrigin;
 
-    internal static MonitoredThread Example(string state) => new("preview", "Notification d’exemple", "Aperçu Codex", "", state);
+    internal static MonitoredThread Example(string state) => new("preview", "🔔 Notification d’exemple", "Aperçu Codex", "", state);
     internal void Test(string state) => Queue.Add(Example(state), config.NotificationSeconds);
     internal void SetPreview(bool enabled)
     {
@@ -42,7 +42,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
     }
 
     internal static Vector2 LogicalSize(SurfaceAppearance appearance) =>
-        new Vector2(440, appearance.Skin == MonitorSkin.Obsidienne ? 112 : 92)
+        new Vector2(440, appearance.Skin == MonitorSkin.Obsidienne ? 136 : 116)
         + 2 * (appearance.Padding + Vector2.Abs(appearance.Text.Offset));
     private Vector2 BaseSize => LogicalSize(config.ToastAppearance!);
     private float Scale(Vector2 viewport) => Math.Min(config.NotificationScale * ImGuiHelpers.GlobalScale * (config.ToastAppearance!.Text.Size / 17),
@@ -114,10 +114,11 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
                 var draw = ImGui.GetWindowDrawList();
                 var p = ImGui.GetWindowPos();
                 uint Color(float r, float g, float b, float opacity = 1) => ImGui.ColorConvertFloat4ToU32(new Vector4(r, g, b, alpha * opacity));
-                DrawFace(draw, p, size, scale, item, config.ToastAppearance!, alpha, preview, draggable);
+                DrawFace(draw, p, size, scale, item, config.ToastAppearance!, alpha, preview, draggable,
+                    !preview && taskLink?.Error is not null ? "Ouverture impossible · Survoler le bouton" : null);
 
                 ImGui.SetCursorPos(new Vector2(4, 4) * scale);
-                ImGui.InvisibleButton("body", new Vector2(size.X - 37 * scale, size.Y - 8 * scale));
+                ImGui.InvisibleButton("body", new Vector2(size.X - 37 * scale, size.Y - 36 * scale));
                 if (ImGui.IsItemHovered())
                 {
                     if (!preview) pausedId = item.Id;
@@ -126,7 +127,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
                     {
                         ImGui.BeginTooltip();
                         ImGui.PushTextWrapPos(440 * ImGuiHelpers.GlobalScale);
-                        ImGui.TextUnformatted(item.Task.Title);
+                        EmojiText.Wrapped(item.Task.Title, 440 * ImGuiHelpers.GlobalScale);
                         ImGui.PopTextWrapPos();
                         ImGui.EndTooltip();
                     }
@@ -148,6 +149,21 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
                 }
                 if (!preview && ImGui.IsItemClicked()) openMonitor(item);
 
+                var summary = item.Task.State == "summary";
+                var canOpen = summary || (taskLink is not null && CodexTaskLink.Build(item.Task.Id) is not null);
+                var buttonSize = new Vector2(Math.Min(200 * scale, size.X - 32 * scale), 23 * scale);
+                ImGui.SetCursorPos(new Vector2(16 * scale, size.Y - 32 * scale));
+                ImGui.BeginDisabled(preview || !canOpen || taskLink?.Busy == true);
+                var action = ImGui.InvisibleButton("open-codex", buttonSize);
+                ImGui.EndDisabled();
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+                {
+                    if (!preview) pausedId = item.Id;
+                    ImGui.SetTooltip(preview || !canOpen ? "Exemple uniquement · aucune tâche à ouvrir" : taskLink?.Error ?? (summary ? "Consulter les événements dans le plugin" : "Ouvrir cette tâche dans l’application Codex"));
+                    if (canOpen && !preview) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
+                }
+                if (action) { if (summary) openMonitor(item); else _ = taskLink!.Open(item.Task.Id); }
+
                 if (preview && !draggable) return;
                 var close = p + new Vector2(size.X - 20 * scale, 18 * scale);
                 draw.AddLine(close + new Vector2(-3, -3) * scale, close + new Vector2(3, 3) * scale, Color(0.68f, 0.71f, 0.68f), scale);
@@ -164,7 +180,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
     }
 
     internal static void DrawFace(ImDrawListPtr draw, Vector2 p, Vector2 size, float scale, NotificationItem item,
-        SurfaceAppearance appearance, float alpha = 1, bool preview = false, bool draggable = false)
+        SurfaceAppearance appearance, float alpha = 1, bool preview = false, bool draggable = false, string? actionError = null)
     {
         using var fontScope = UiFonts.Push(appearance.Text);
         using var palette = ObsidianTheme.Palette(appearance);
@@ -186,7 +202,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
         }
         var heading = item.Task.State switch
         {
-            "idle" => "Tour terminé", "needsInput" => "Réponse requise", "question" => "Question posée",
+            "idle" => "Réponse prête", "needsInput" => "Réponse requise", "question" => "Question posée",
             "summary" => "Pendant votre absence", "needsApproval" => "Approbation requise", _ => "Une erreur est survenue",
         };
         var textLeft = appearance.ToastShowIcon ? compact ? 46 : 75 : 16;
@@ -196,7 +212,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
         void Label(string value, float y, Vector4 color, float factor)
         {
             var fitted = ObsidianTheme.Fit(value, width, fontSize * factor);
-            var measured = ImGui.CalcTextSize(fitted).X * fontSize * factor / ImGui.GetFontSize();
+            var measured = ObsidianTheme.Measure(fitted, fontSize * factor);
             var shift = Math.Max(0, width - measured) * (int)appearance.Alignment / 2;
             ObsidianTheme.DrawText(draw, fitted, text + new Vector2(shift, y * scale), color, fontSize * factor, appearance.Text);
         }
@@ -204,7 +220,10 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
         Label(item.Task.Title, compact ? 23 : 26, foreground, .94f);
         var meta = preview ? (draggable ? "APERÇU · Glisser pour placer l’ancre" : "APERÇU · Données fictives")
             : item.Task.State == "summary" ? item.Task.Project : $"Codex · {item.Task.Project}";
-        Label(meta, compact ? 46 : 53, secondary, .8f);
+        Label(actionError ?? meta, compact ? 46 : 53, actionError is null ? secondary : new Vector4(ObsidianTheme.Red.X, ObsidianTheme.Red.Y, ObsidianTheme.Red.Z, alpha), .8f);
+        var actionLabel = item.Task.State == "summary" ? "Voir l’historique" : "Ouvrir dans Codex";
+        var actionColor = preview || CodexTaskLink.Build(item.Task.Id) is null && item.Task.State != "summary" ? secondary : accent;
+        ObsidianTheme.DrawText(draw, actionLabel, p + new Vector2(16 * scale, size.Y - 28 * scale), actionColor, fontSize * .82f, appearance.Text);
         var fraction = preview ? 1 : Math.Clamp((item.Duration - item.Age) / item.Duration, 0, 1);
         var timerInset = Math.Max(10 * scale, radius);
         if (appearance.ToastShowTimer) draw.AddRectFilled(p + new Vector2(timerInset, size.Y - 4 * scale), p + new Vector2(timerInset + (size.X - 2 * timerInset) * fraction, size.Y - 2 * scale), ObsidianTheme.U(accent));
@@ -221,22 +240,6 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
         draw.AddLine(origin + new Vector2(size.X / 2, 0), origin + new Vector2(size.X / 2, size.Y), guide);
         draw.AddLine(origin + new Vector2(0, size.Y / 2), origin + new Vector2(size.X, size.Y / 2), guide);
         draw.AddRect(origin + new Vector2(12), origin + size - new Vector2(12), guide);
-    }
-
-    private static string Fit(string text, float width, float fontSize)
-    {
-        var ratio = fontSize / ImGui.GetFontSize();
-        if (ImGui.CalcTextSize(text).X * ratio <= width) return text;
-        var low = 0;
-        var high = text.Length;
-        while (low < high)
-        {
-            var mid = (low + high + 1) / 2;
-            if (ImGui.CalcTextSize(text[..mid] + "…").X * ratio <= width) low = mid;
-            else high = mid - 1;
-        }
-        if (low > 0 && char.IsHighSurrogate(text[low - 1])) low--;
-        return text[..low] + "…";
     }
 
     private static void DrawSymbol(ImDrawListPtr draw, Vector2 center, float scale, uint color, string state)

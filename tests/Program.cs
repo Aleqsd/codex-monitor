@@ -5,6 +5,7 @@ using CodexMonitor;
 
 var id = Guid.NewGuid().ToString();
 var now = DateTimeOffset.UtcNow;
+if (args.Contains("--presentation-checks")) { Console.WriteLine($"{await PresentationChecks.Run()} Unicode and task-link checks passed."); return; }
 await using var liveLaunch = args.Contains("--launch-live") ? await LiveRelayCheck.Start() : null;
 if (args.Contains("--quiet-return-checks")) { Console.WriteLine($"{QuietReturnChecks.Run()} quiet-return checks passed."); return; }
 if (args.Contains("--hud-motion-checks")) { Console.WriteLine($"{HudMotionChecks.Run()} HUD motion checks passed."); return; }
@@ -116,8 +117,8 @@ Tick(resolvedDuringCombat);
 Check(alerts.Count == 1 && history.Entries.Count == 3, "Summary is emitted once and never duplicates history");
 var inputEntry = history.Entries.Single(entry => entry.Task.State == "needsInput");
 var approvalEntry = history.Entries.Single(entry => entry.Task.State == "needsApproval");
-Check(history.CurrentLabel(inputEntry, resolvedDuringCombat) == "Intervention terminée"
-    && history.CurrentLabel(approvalEntry, resolvedDuringCombat) == "Intervention en cours",
+Check(history.CurrentLabel(inputEntry, resolvedDuringCombat) == "Demande traitée"
+    && history.CurrentLabel(approvalEntry, resolvedDuringCombat) == "À traiter",
     "History distinguishes a resolved intervention from a current approval");
 
 
@@ -284,7 +285,7 @@ var questionHistory = new NotificationHistory(); var questionQueue = new Notific
 var questionCenter = new NotificationCenter(questionHistory, questionQueue, questionSounds.Add);
 questionCenter.Update(noQuestion, false, true, true, 7, now);
 questionCenter.Update(withQuestion, false, true, true, 7, now);
-Check(questionQueue.Count == 1 && questionSounds.SequenceEqual(new[] { "question" }) && questionHistory.CurrentLabel(questionHistory.Entries[0], withQuestion) == "Intervention en cours",
+Check(questionQueue.Count == 1 && questionSounds.SequenceEqual(new[] { "question" }) && questionHistory.CurrentLabel(questionHistory.Entries[0], withQuestion) == "À traiter",
     "Question notifications, sound and journal agree on the pending request");
 questionCenter.Update(noQuestion, false, true, true, 7, now);
 Check(questionQueue.Count == 0 && questionHistory.CurrentLabel(questionHistory.Entries[0], noQuestion) == "Question traitée ou dépassée",

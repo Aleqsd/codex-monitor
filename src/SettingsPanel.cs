@@ -85,7 +85,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         else ImGui.TextWrapped("La fenêtre reste accessible avec /codex. Les notifications continuent de fonctionner.");
         ImGui.Separator();
         ObsidianTheme.Section("Liste des tâches");
-        Toggle("Afficher les tâches au repos", config.ShowIdle, value => config.ShowIdle = value);
+        Toggle("Afficher les tâches sans activité", config.ShowIdle, value => config.ShowIdle = value);
         Toggle("Inclure les tâches non observées", config.ShowUnobserved, value => config.ShowUnobserved = value);
         if (ImGui.Button("Quand afficher le plugin…")) Category = 5;
     }
@@ -141,12 +141,12 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         }
         var c = plugin.Config; var n = plugin.NotificationUi;
         ObsidianTheme.Section("Ce qui mérite votre attention");
-        Toggle("Un tour se termine", c.NotifyOnIdle, value => c.NotifyOnIdle = value);
-        Toggle("Une réponse, une approbation ou une erreur", c.NotifyOnAttention, value => c.NotifyOnAttention = value);
+        Toggle("Une réponse est prête", c.NotifyOnIdle, value => c.NotifyOnIdle = value);
+        Toggle("Une réponse attendue, une approbation ou une erreur", c.NotifyOnAttention, value => c.NotifyOnAttention = value);
         Toggle("Une question pendant que Codex continue", c.NotifyOnQuestions, value => c.NotifyOnQuestions = value);
         ImGui.TextDisabled("Pas d’alerte à la première connexion ni à la reconnexion.");
         ImGui.Separator();
-        ObsidianTheme.Section("Mode discret", "Les alertes reprennent après 2 s au calme, avec leur durée complète.");
+        ObsidianTheme.Section("Mettre les notifications en pause", "Les alertes reprennent après 2 s au calme, avec leur durée complète.");
         Toggle("Pendant les combats", c.QuietInCombat, value => c.QuietInCombat = value);
         Toggle("Pendant les cinématiques", c.QuietInCutscene, value => c.QuietInCutscene = value);
         ImGui.Separator();
@@ -156,7 +156,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         ImGui.SameLine();
         if (ImGui.Button("Recentrer"))
         { c.NotificationAnchorX = 0.5f; c.NotificationAnchorY = 0.22f; c.NotificationOffsetX = c.NotificationOffsetY = 0; n.SetPreview(true); }
-        if (plugin.Center.IsQuiet) ImGui.TextColored(ObsidianTheme.Amber, "Mode discret actif : l’aperçu attendra.");
+        if (plugin.Center.IsQuiet) ImGui.TextColored(ObsidianTheme.Amber, "Notifications en pause : l’aperçu attendra.");
         Float("Durée", c.NotificationSeconds, 4, 15, "%.0f s", value => c.NotificationSeconds = value);
         Float("Taille", c.NotificationScale, 0.75f, 1.5f, "%.2f ×", value => c.NotificationScale = value);
         Toggle("Réduire les animations", c.NotificationReducedMotion, value => c.NotificationReducedMotion = value);
@@ -185,7 +185,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         string[] states = ["idle", "needsInput", "needsApproval", "error", "question"];
         var example = Math.Max(0, Array.IndexOf(states, n.PreviewState));
         ImGui.SetNextItemWidth(220 * ImGuiHelpers.GlobalScale);
-        if (ImGui.Combo("Exemple", ref example, new[] { "Tour terminé", "Réponse requise", "Approbation", "Erreur", "Question sans pause" }, 5)) n.PreviewState = states[example];
+        if (ImGui.Combo("Exemple", ref example, new[] { "Réponse prête", "Réponse requise", "Approbation", "Erreur", "Question de Codex" }, 5)) n.PreviewState = states[example];
         if (ImGui.Button("Tester une notification")) { n.SetPreview(false); n.Test(n.PreviewState); plugin.Sounds.Play(n.PreviewState, c.Sounds, true); }
     }
 
@@ -195,10 +195,10 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         ObsidianTheme.Section("Une présence discrète", "Des sons courts, avec un volume indépendant du jeu.");
         Toggle("Activer les sons", sound.Enabled, value => sound.Enabled = value);
         Float("Volume", sound.Volume * 100, 0, 100, "%.0f %%", value => sound.Volume = value / 100);
-        ImGui.TextDisabled("Silence en mode discret · Au plus un son toutes les 2 s");
-        if (plugin.Center.IsQuiet) ImGui.TextColored(ObsidianTheme.Amber, "Mode discret actif : les écoutes sont aussi silencieuses.");
+        ImGui.TextDisabled("Silence pendant la pause des notifications · Au plus un son toutes les 2 s");
+        if (plugin.Center.IsQuiet) ImGui.TextColored(ObsidianTheme.Amber, "Notifications en pause : les écoutes sont aussi silencieuses.");
         ImGui.Separator();
-        SoundRow("Tour terminé", "idle", sound.Completion, sound.CompletionFile, value => sound.Completion = value, value => sound.CompletionFile = value);
+        SoundRow("Réponse prête", "idle", sound.Completion, sound.CompletionFile, value => sound.Completion = value, value => sound.CompletionFile = value);
         SoundRow("Question, réponse ou approbation", "needsInput", sound.Attention, sound.AttentionFile, value => sound.Attention = value, value => sound.AttentionFile = value);
         SoundRow("Erreur", "error", sound.Error, sound.ErrorFile, value => sound.Error = value, value => sound.ErrorFile = value);
         if (plugin.Sounds.Error is { } error) ImGui.TextColored(ObsidianTheme.Red, error);
@@ -267,14 +267,14 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         ImGui.Separator();
         ObsidianTheme.Section("Raccourcis");
         ImGui.TextUnformatted("/codex          Ouvrir les tâches\n/codex history  Consulter l’historique\n/codex preview  Placer les notifications\n/codex hud      Basculer Mini HUD / texte");
-        ImGui.Spacing(); ImGui.TextDisabled("Codex Monitor 0.7.0 · Aleqsd");
+        ImGui.Spacing(); ImGui.TextDisabled("Codex Monitor 0.8.0 · Aleqsd");
         if (ImGui.CollapsingHeader("Informations techniques")) ImGui.TextWrapped(typeof(Configuration).Assembly.Location);
     }
 
     private void DrawVisibility()
     {
         var config = plugin.Config; var visibility = config.Visibility!;
-        ObsidianTheme.Section("Un affichage discret", "Ces règles masquent la fenêtre, le mini HUD, le texte de barre et les notifications.");
+        ObsidianTheme.Section("Quand masquer le plugin", "Case cochée : le plugin est masqué dans cette situation (fenêtre, mini HUD, texte de barre et notifications).");
         Toggle("Écran titre et sélection du personnage", visibility.HideOutsideGame, value => visibility.HideOutsideGame = value);
         Toggle("Écrans de chargement", visibility.HideWhileLoading, value => visibility.HideWhileLoading = value);
         Toggle("Cinématiques", visibility.HideInCutscenes, value => visibility.HideInCutscenes = value);

@@ -32,6 +32,8 @@ La fenêtre reste fermée au chargement. Dans **Réglages → Visibilité**, cho
 
 Cliquer sur une tâche avec un « ? » permet de masquer sa question dans FF14 ou de la réafficher. Les nouvelles questions restent signalées.
 
+**Ouvrir** dans la liste, ou **Ouvrir dans Codex** sur une notification, ouvre directement la tâche dans l’application Codex. Les titres affichent les emojis en couleur avec la police Windows.
+
 Dans **Notifications → Design**, personnaliser le fond, la transparence, les coins, les icônes et le texte avec un aperçu. LMeter, Obsidienne et Nuit habillent les éléments du plugin ; les réglages gardent une présentation fixe. Expressway est facultative et locale, avec repli Dalamud.
 
 Le relais utilise un protocole interne de Codex qui peut évoluer. Le plugin ne lance ni n’approuve de tâche.
@@ -40,13 +42,15 @@ Le relais utilise un protocole interne de Codex qui peut évoluer. Le plugin ne 
 
 Six formats, du simple texte au panneau compact, avec les tâches actives, les questions et le quota restant.
 
+Le **Panneau fin** affiche le pourcentage sans barre : vert au-dessus de 50 %, ambre de 20 à 50 %, rouge sous 20 %. Une valeur inconnue reste grise.
+
 ![Les six formats de mini HUD : Fil, Capsule, Balise, Liseré, Totem et Panneau fin](docs/images/mini-huds.png)
 
 ## Notifications
 
-Fin d’un tour, question posée ou résumé au retour du combat. Voici les thèmes LMeter, Obsidienne et Nuit :
+Réponse prête, question posée ou résumé au retour du combat. Voici les thèmes LMeter, Obsidienne et Nuit :
 
-![Aperçus de notifications : tour terminé, question posée et résumé pendant votre absence](docs/images/notifications.png)
+![Aperçus de notifications : réponse prête, question posée et résumé pendant votre absence](docs/images/notifications.png)
 
 *Ces aperçus proviennent des composants ImGui réels, hors jeu, avec des données fictives.*
 

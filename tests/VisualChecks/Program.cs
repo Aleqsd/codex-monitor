@@ -27,6 +27,22 @@ internal static unsafe partial class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--navigation-preview")) { NavigationPreview(args.Last()); return; }
+        if (args.Contains("--navigation-smoke")) { NavigationSmoke(); return; }
+        if (args.Contains("--emoji-raster"))
+        {
+            Directory.CreateDirectory("artifacts/emoji");
+            var i = 0;
+            foreach (var text in new[] { "🔔", "🎨", "🐛", "👩🏽‍💻", "✅", "🚀" })
+            {
+                var bitmap = EmojiRasterizer.Render(text);
+                var colored = Enumerable.Range(0, bitmap.Width * bitmap.Height).Count(p => bitmap.Rgba[p * 4 + 3] > 0 && bitmap.Rgba[p * 4] != bitmap.Rgba[p * 4 + 2]);
+                if (colored < 100) throw new Exception($"Missing color emoji: {text} ({colored} pixels)");
+                File.WriteAllBytes($"artifacts/emoji/{i++}.rgba", bitmap.Rgba);
+                Console.WriteLine($"PASS {text}: {colored} color pixels");
+            }
+            return;
+        }
         if (args.Contains("--visibility-preview")) { VisibilityPreview(args.Last()); return; }
         if (args.Contains("--visibility-smoke")) { VisibilityMigration(); return; }
         if (args.Contains("--readme-previews")) { ReadmePreviews(args.Last()); return; }
@@ -297,6 +313,7 @@ internal static unsafe partial class Program
             io.Fonts.SetTexID(i, id); Textures[id] = new Texture(w, h, bytes);
         }
         UiFonts.Resolver = text => { if (text is null) return null; ImGui.PushFont(SizedFonts.TryGetValue((int)text.Size + (text.Font == MonitorFont.LocalFile && text.FontFile.Length > 0 ? 100 : 0), out var font) ? font : SizedFonts[17]); return new FontPop(); };
+        LoadEmojiTextures();
         plugin = new Plugin(); window = new MainWindow(plugin);
     }
 

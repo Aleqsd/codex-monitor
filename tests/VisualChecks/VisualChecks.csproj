@@ -4,6 +4,11 @@
     <ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable><AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/EmojiText.cs" Link="EmojiText.cs" />
+    <Compile Include="../../src/UnicodeText.cs" Link="UnicodeText.cs" />
+    <Compile Include="../../src/CodexTaskLink.cs" Link="CodexTaskLink.cs" />
+    <Reference Include="TerraFX.Interop.Windows"><HintPath>$(DALAMUD_HOME)/TerraFX.Interop.Windows.dll</HintPath></Reference>
+    <Compile Include="../../src/EmojiRasterizer.cs" Link="EmojiRasterizer.cs" />
     <Compile Include="../../src/VisibilityOptions.cs" Link="VisibilityOptions.cs" />
     <Compile Include="../../src/RelayLauncher.cs" Link="RelayLauncher.cs" />
     <Reference Include="Dalamud.Bindings.ImGui"><HintPath>$(DALAMUD_HOME)/Dalamud.Bindings.ImGui.dll</HintPath></Reference>

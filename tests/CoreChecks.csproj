@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../src/UnicodeText.cs" Link="UnicodeText.cs" />
+    <Compile Include="../src/CodexTaskLink.cs" Link="CodexTaskLink.cs" />
     <Compile Include="../src/VisibilityOptions.cs" Link="VisibilityOptions.cs" />
     <Compile Include="../src/RelayLauncher.cs" Link="RelayLauncher.cs" />
     <EmbeddedResource Include="../bridge/bridge.mjs;../bridge/observer.mjs;../bridge/questions.mjs;../bridge/usage.mjs" LogicalName="CodexMonitor.Relay.%(Filename)%(Extension)" />

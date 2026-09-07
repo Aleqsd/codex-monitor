@@ -32,7 +32,11 @@ Les couleurs sémantiques restent centralisées dans `ObsidianTheme`, dont le no
 
 `QuestionDismissals` masque localement des identifiants précis et mémorise ce choix. La projection est mise en cache et partagée par les compteurs, le HUD, les notifications et l’historique. Elle préserve les interventions bloquantes et les nouvelles questions. Une restauration ne rejoue pas la notification. Aucune réponse ou modification de tâche n’est envoyée à Codex.
 
+`CodexTaskLink` construit uniquement des liens `codex://threads/<UUID>` après validation. Le lancement passe par l’association de protocole Windows au clic explicite, hors du dessin par frame. Le format a été confirmé dans l’application installée ; il ne constitue pas une API publique garantie.
+
 ## Polices et licences
+
+`UnicodeText` découpe les titres par graphèmes. `EmojiText` mesure les segments de texte et les emojis avec la même largeur que le rendu. `EmojiImages` prépare en arrière-plan un cache borné à 256 textures et les libère au déchargement. La rasterisation logicielle passe par DirectWrite, Direct2D et WIC, avec [l’option de polices en couleur de Microsoft](https://learn.microsoft.com/en-us/windows/win32/directwrite/color-fonts). Les bindings TerraFX sont ceux déjà fournis par Dalamud, sans copie dans le paquet.
 
 Le code de ce dépôt, y compris les quatre scripts du relais embarqués dans la DLL, est sous licence MIT et a été développé avec l’aide substantielle de Codex. Node.js et le CLI restent des prérequis externes. Les sons intégrés sont synthétisés par le plugin. Les images de démonstration sont des rendus des composants réels avec données fictives.
 

@@ -19,6 +19,7 @@ public sealed class Plugin : IDalamudPlugin
     [PluginService] internal static ICondition Conditions { get; private set; } = null!;
     [PluginService] internal static IClientState ClientState { get; private set; } = null!;
     [PluginService] internal static IGameGui GameGui { get; private set; } = null!;
+    [PluginService] internal static ITextureProvider Textures { get; private set; } = null!;
 
     private readonly WindowSystem windows = new("CodexMonitor");
     private readonly MainWindow main;
@@ -27,6 +28,8 @@ public sealed class Plugin : IDalamudPlugin
     private readonly object saveGate = new();
     private readonly QuietModeGate quietGate = new();
     private readonly QuestionDismissals questionDismissals;
+    private readonly EmojiImages emojis;
+    private DateTimeOffset nextEmojiRefresh;
     private bool fontsDirty;
     private bool manuallyOpened;
     private bool pendingOpen;
@@ -40,6 +43,7 @@ public sealed class Plugin : IDalamudPlugin
     internal MiniHud Hud { get; }
     internal NotificationSounds Sounds { get; } = new();
     internal RelayLauncher Relay { get; }
+    internal CodexTaskLink TaskLink { get; } = new();
     internal MonitorSnapshot Snapshot => questionDismissals.Apply(client.Current);
 
     public Plugin()
@@ -52,9 +56,11 @@ public sealed class Plugin : IDalamudPlugin
         ApplyVisibility();
         questionDismissals = new QuestionDismissals(Config.DismissedQuestions);
         UiFonts.Initialize(PluginInterface.UiBuilder.FontAtlas);
+        emojis = new EmojiImages(Textures);
+        EmojiText.Resolve = emojis.Resolve;
         UiFonts.Refresh(Config.WindowAppearance!.Text, Config.HudAppearance!.Text, Config.ToastAppearance!.Text);
         History = new NotificationHistory(Config.NotificationHistory);
-        NotificationUi = new NotificationOverlay(Config, Save, OnNotificationClick);
+        NotificationUi = new NotificationOverlay(Config, Save, OnNotificationClick, TaskLink);
         Center = new NotificationCenter(History, NotificationUi.Queue, state => Sounds.Play(state, Config.Sounds));
         Hud = new MiniHud(this, OpenMain);
         client = new BridgeClient(Config.Port);
@@ -70,7 +76,7 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.UiBuilder.OpenMainUi += OpenMain;
         PluginInterface.UiBuilder.OpenConfigUi += OpenConfig;
         Framework.Update += Update;
-        Log.Information("Codex Monitor 0.7.0 loaded; local bridge port {Port}", Config.Port);
+        Log.Information("Codex Monitor 0.8.0 loaded; local bridge port {Port}", Config.Port);
     }
 
     private static SeString Text(string text) => new SeStringBuilder().AddText(text).Build();
@@ -177,6 +183,12 @@ public sealed class Plugin : IDalamudPlugin
         dtr.Shown = Config.Indicator == IndicatorMode.Text && !hidden;
         var snapshot = Snapshot;
         var now = DateTimeOffset.UtcNow;
+        if (now >= nextEmojiRefresh)
+        {
+            nextEmojiRefresh = now.AddSeconds(1);
+            emojis.Prepare(snapshot.Threads.Select(task => task.Title).Concat(History.Entries.Select(entry => entry.Task.Title))
+                .Append("🔔 Notification d’exemple"));
+        }
         var outside = Config.Visibility.HideOutsideGame && !game.LoggedIn;
         var requestedQuiet = hidden || (Config.QuietInCombat && game.Combat) || (Config.QuietInCutscene && game.Cutscene);
         var quiet = quietGate.Update(requestedQuiet, now);
@@ -187,7 +199,7 @@ public sealed class Plugin : IDalamudPlugin
         if (ReferenceEquals(previous, snapshot)) return;
         dtr.Text = Text(snapshot.Connected ? $"Codex {snapshot.Active} / {snapshot.Attention}!" : "Codex hors ligne");
         dtr.Tooltip = Text(snapshot.Connected
-            ? $"{snapshot.Active} en cours\n{snapshot.Attention} intervention(s)\n{snapshot.Idle} au repos\nCliquer pour ouvrir"
+            ? $"{snapshot.Active} en cours\n{snapshot.Attention} à voir\n{snapshot.Idle} sans activité\nCliquer pour ouvrir"
             : "Relais local déconnecté. Cliquer pour ouvrir.");
         if (snapshot.Connected != previous.Connected)
             Log.Information("Local Codex bridge connected: {Connected}; observed tasks: {Count}", snapshot.Connected, snapshot.Threads.Count(thread => thread.IsObserved));
@@ -219,6 +231,8 @@ public sealed class Plugin : IDalamudPlugin
         dtr.Remove();
         windows.RemoveAllWindows();
         client.Dispose();
+        EmojiText.Reset();
+        emojis.Dispose();
         UiFonts.Dispose();
         Log.Information("Codex Monitor unloaded.");
     }

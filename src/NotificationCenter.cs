@@ -35,13 +35,13 @@ public sealed class NotificationHistory
         {
             var task = snapshot.Threads.FirstOrDefault(task => task.Id == entry.Task.Id);
             if (!snapshot.Connected || !snapshot.QuestionTrackingSupported || task is null || !task.IsObserved) return "État actuel inconnu";
-            if (entry.Task.QuestionIds.Intersect(task.QuestionIds).Any()) return "Intervention en cours";
+            if (entry.Task.QuestionIds.Intersect(task.QuestionIds).Any()) return "À traiter";
             return entry.Task.QuestionIds.Intersect(task.HiddenQuestionIds ?? []).Any() ? "Question masquée dans FF14" : "Question traitée ou dépassée";
         }
         lock (gate) if (entries.Any(item => item.Task.Id == entry.Task.Id && item.Id > entry.Id)) return "Ancienne alerte";
         var current = snapshot.Threads.FirstOrDefault(task => task.Id == entry.Task.Id);
         if (!snapshot.Connected || current is null || !current.IsObserved) return "État actuel inconnu";
-        return current.State == entry.Task.State ? "Intervention en cours" : "Intervention terminée";
+        return current.State == entry.Task.State ? "À traiter" : "Demande traitée";
     }
 }
 
@@ -49,13 +49,13 @@ public sealed record QuietDigest(int Completed, int Input, int Approval, int Err
 {
     public string Title => string.Join(" · ", new[]
     {
-        Completed > 0 ? $"{Completed} " + (Completed == 1 ? "tour terminé" : "tours terminés") : null,
+        Completed > 0 ? $"{Completed} " + (Completed == 1 ? "réponse prête" : "réponses prêtes") : null,
         Input > 0 ? $"{Input} " + (Input == 1 ? "réponse attendue" : "réponses attendues") : null,
         Approval > 0 ? $"{Approval} " + (Approval == 1 ? "approbation" : "approbations") : null,
         Errors > 0 ? $"{Errors} " + (Errors == 1 ? "erreur" : "erreurs") : null,
         Questions > 0 ? $"{Questions} " + (Questions == 1 ? "tâche avec une question" : "tâches avec des questions") : null,
     }.Where(part => part != null));
-    public string DisplayTitle => Title.Length > 0 ? Title : $"{Events} " + (Events == 1 ? "alerte" : "alertes") + " · aucune intervention en attente";
+    public string DisplayTitle => Title.Length > 0 ? Title : $"{Events} " + (Events == 1 ? "alerte" : "alertes") + " · aucune demande en attente";
 }
 
 /// <summary>Runs on the framework/UI thread; persistence belongs to the plugin.</summary>

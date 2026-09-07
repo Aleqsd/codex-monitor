@@ -31,7 +31,7 @@ internal sealed class MainWindow : Window
         var draw = ImGui.GetWindowDrawList();
         if (ObsidianTheme.Compact)
         {
-            var statusLabel = !snapshot.Connected ? "Hors ligne" : plugin.Center.IsQuiet ? "Discret" : "En direct";
+            var statusLabel = !snapshot.Connected ? "Hors ligne" : plugin.Center.IsQuiet ? "Alertes en pause" : "En direct";
             var right = ImGui.CalcTextSize(statusLabel).X;
             ObsidianTheme.DrawText(draw, "CODEX", start, ObsidianTheme.Mint, ImGui.GetFontSize());
             ObsidianTheme.DrawText(draw, statusLabel, start + new Vector2(width - right, 0), snapshot.Connected ? ObsidianTheme.Muted : ObsidianTheme.Amber, ImGui.GetFontSize());
@@ -44,7 +44,7 @@ internal sealed class MainWindow : Window
             logo + new Vector2(0, 9) * scale, logo + new Vector2(-9, 0) * scale, ObsidianTheme.U(ObsidianTheme.Mint));
         draw.AddText(ImGui.GetFont(), ImGui.GetFontSize() * 1.2f, start + new Vector2(37, 1) * scale, ObsidianTheme.U(ObsidianTheme.Text), "Codex Monitor");
         draw.AddText(start + new Vector2(38, 28) * scale, ObsidianTheme.U(ObsidianTheme.Muted), "Suivi des tâches de ce PC");
-        var status = !snapshot.Connected ? "HORS LIGNE" : plugin.Center.IsQuiet ? "MODE DISCRET" : "EN DIRECT";
+        var status = !snapshot.Connected ? "HORS LIGNE" : plugin.Center.IsQuiet ? "ALERTES EN PAUSE" : "EN DIRECT";
         var statusWidth = ImGui.CalcTextSize(status).X;
         var statusPos = start + new Vector2(width - statusWidth, 4 * scale);
         draw.AddText(statusPos, ObsidianTheme.U(snapshot.Connected ? ObsidianTheme.Mint : ObsidianTheme.Amber), status);
@@ -56,6 +56,7 @@ internal sealed class MainWindow : Window
         ImGui.SameLine();
         if (ObsidianTheme.Tab("Réglages", ShowSettings)) { ShowSettings = true; ShowHistory = false; }
         ImGui.Separator();
+        if (plugin.TaskLink.Error is { } linkError) ImGui.TextWrapped(linkError);
         if (ShowSettings) { settings.Draw(); return; }
         if (ShowHistory) { DrawHistory(); return; }
         DrawTasks(snapshot);
@@ -76,9 +77,9 @@ internal sealed class MainWindow : Window
         var cell = (width - 2 * gap) / 3;
         Summary("En cours", snapshot.Active, ObsidianTheme.Blue, cell, stateFilter == 1, () => stateFilter = stateFilter == 1 ? 0 : 1);
         ImGui.SameLine(0, gap);
-        Summary("Interventions", snapshot.Attention, ObsidianTheme.Amber, cell, stateFilter == 2, () => stateFilter = stateFilter == 2 ? 0 : 2);
+        Summary("À voir", snapshot.Attention, ObsidianTheme.Amber, cell, stateFilter == 2, () => stateFilter = stateFilter == 2 ? 0 : 2);
         ImGui.SameLine(0, gap);
-        Summary("Au repos", snapshot.Idle, ObsidianTheme.Green, cell, stateFilter == 3, () => stateFilter = stateFilter == 3 ? 0 : 3);
+        Summary("Sans activité", snapshot.Idle, ObsidianTheme.Green, cell, stateFilter == 3, () => stateFilter = stateFilter == 3 ? 0 : 3);
         ImGui.SetNextItemWidth(-1);
         ImGui.InputTextWithHint("##search", "Rechercher une tâche ou un projet…", ref filter, 150);
         if (stateFilter != 0)
@@ -137,11 +138,13 @@ internal sealed class MainWindow : Window
         ImGui.PushID(task.Id);
         var hidden = task.HiddenQuestionIds is { Length: > 0 };
         var clickable = task.HasQuestion || hidden;
-        if (ImGui.InvisibleButton("row", new Vector2(width, rowHeight)) && clickable) ImGui.OpenPopup("question-actions");
-        DrawTaskFace(ImGui.GetWindowDrawList(), p, width, rowHeight, task, appearance, ImGui.IsItemHovered());
+        var openWidth = ImGui.CalcTextSize("Ouvrir").X + 20 * s;
+        if (ImGui.InvisibleButton("row", new Vector2(width - openWidth - 4 * s, rowHeight)) && clickable) ImGui.OpenPopup("question-actions");
+        var nextRow = ImGui.GetCursorScreenPos();
+        DrawTaskFace(ImGui.GetWindowDrawList(), p, width - openWidth - 4 * s, rowHeight, task, appearance, ImGui.IsItemHovered());
         if (ImGui.IsItemHovered())
         {
-            ImGui.BeginTooltip(); ImGui.PushTextWrapPos(470 * s); ImGui.TextUnformatted(task.Title); ImGui.TextDisabled(task.Project);
+            ImGui.BeginTooltip(); ImGui.PushTextWrapPos(470 * s); EmojiText.Wrapped(task.Title, 470 * s); ImGui.TextDisabled(task.Project);
             if (task.HasQuestion) ImGui.TextColored(ObsidianTheme.Amber, "Question posée · Répondre dans Codex");
             if (hidden) ImGui.TextDisabled("Question masquée dans FF14");
             if (clickable) ImGui.TextDisabled("Cliquer pour gérer le signal de question");
@@ -150,7 +153,7 @@ internal sealed class MainWindow : Window
         if (ImGui.BeginPopup("question-actions"))
         {
             ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + 310 * s);
-            ImGui.TextWrapped(task.Title);
+            EmojiText.Wrapped(task.Title, 310 * s);
             ImGui.TextWrapped("Ce choix concerne seulement FF14. Il ne répond pas dans Codex.");
             ImGui.Separator();
             if (task.HasQuestion && ImGui.Selectable(task.QuestionIds.Length == 1 ? "Masquer cette question" : "Masquer ces questions")) plugin.DismissQuestions(task);
@@ -158,6 +161,13 @@ internal sealed class MainWindow : Window
             ImGui.TextWrapped("Les nouvelles questions resteront signalées.");
             ImGui.PopTextWrapPos(); ImGui.EndPopup();
         }
+        ImGui.SetCursorScreenPos(p + new Vector2(width - openWidth, (rowHeight - ImGui.GetFrameHeight()) / 2));
+        ImGui.BeginDisabled(CodexTaskLink.Build(task.Id) is null || plugin.TaskLink.Busy);
+        if (ImGui.Button("Ouvrir##codex", new Vector2(openWidth, 0))) _ = plugin.TaskLink.Open(task.Id);
+        ImGui.EndDisabled();
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+            ImGui.SetTooltip(plugin.TaskLink.Error ?? "Ouvrir cette tâche dans l’application Codex");
+        ImGui.SetCursorScreenPos(nextRow);
         ImGui.PopID();
     }
 
@@ -173,7 +183,7 @@ internal sealed class MainWindow : Window
         var statusWidth = Math.Min(width * 0.38f, ImGui.CalcTextSize(status).X);
         var titleWidth = Math.Max(1, width - statusWidth - 30 * s - 2 * inset.X);
         var title = ObsidianTheme.Fit(task.Title, titleWidth);
-        var shift = (titleWidth - ImGui.CalcTextSize(title).X) * (int)appearance.Alignment / 2;
+        var shift = (titleWidth - ObsidianTheme.Measure(title)) * (int)appearance.Alignment / 2;
         ObsidianTheme.DrawText(draw, title, text + new Vector2(shift, 0), ObsidianTheme.Text, ImGui.GetFontSize());
         ObsidianTheme.DrawText(draw, ObsidianTheme.Fit(status, statusWidth), new Vector2(p.X + width - statusWidth - 8 * s, text.Y), color, ImGui.GetFontSize());
         ObsidianTheme.DrawText(draw, ObsidianTheme.Fit(task.Project, width - 26 * s - 2 * inset.X), text + new Vector2(0, ImGui.GetFontSize() + 4 * s), ObsidianTheme.Muted, ImGui.GetFontSize() * 0.9f);
@@ -182,10 +192,10 @@ internal sealed class MainWindow : Window
     private void DrawHistory()
     {
         var history = plugin.History;
-        ImGui.Checkbox("Interventions en cours seulement", ref pendingOnly);
+        ImGui.Checkbox("Demandes à traiter seulement", ref pendingOnly);
         ImGui.SameLine();
         if (ImGui.SmallButton("Effacer")) { history.Clear(); plugin.Save(); }
-        var rows = history.Entries.Where(entry => !pendingOnly || history.CurrentLabel(entry, plugin.Snapshot) == "Intervention en cours").ToArray();
+        var rows = history.Entries.Where(entry => !pendingOnly || history.CurrentLabel(entry, plugin.Snapshot) == "À traiter").ToArray();
         var s = ObsidianTheme.UiScale;
         if (ImGui.BeginChild("history-list", new Vector2(0, Math.Max(70 * s, ImGui.GetContentRegionAvail().Y - 28 * s)), false))
         {
@@ -195,10 +205,13 @@ internal sealed class MainWindow : Window
                 ImGui.PushID(entry.Id.ToString());
                 ImGui.TextColored(ObsidianTheme.Muted, entry.At.ToLocalTime().ToString("dd/MM · HH:mm"));
                 ImGui.SameLine();
-                ImGui.TextColored(ObsidianTheme.State(entry.Task.State), entry.Task.State == "idle" ? "Tour terminé" : entry.Task.Label);
-                ImGui.TextWrapped(entry.Task.Title);
+                ImGui.TextColored(ObsidianTheme.State(entry.Task.State), entry.Task.State == "idle" ? "Réponse prête" : entry.Task.Label);
+                EmojiText.Wrapped(entry.Task.Title, ImGui.GetContentRegionAvail().X);
+                ImGui.BeginDisabled(CodexTaskLink.Build(entry.Task.Id) is null || plugin.TaskLink.Busy);
+                if (ImGui.SmallButton("Ouvrir dans Codex")) _ = plugin.TaskLink.Open(entry.Task.Id);
+                ImGui.EndDisabled();
                 var current = history.CurrentLabel(entry, plugin.Snapshot);
-                ImGui.TextColored(current == "Intervention en cours" ? ObsidianTheme.Amber : ObsidianTheme.Muted, current);
+                ImGui.TextColored(current == "À traiter" ? ObsidianTheme.Amber : ObsidianTheme.Muted, current);
                 ImGui.Separator(); ImGui.PopID();
             }
         }
