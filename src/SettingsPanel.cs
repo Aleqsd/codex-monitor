@@ -57,10 +57,10 @@ internal sealed partial class SettingsPanel(Plugin plugin)
             p = ImGui.GetCursorScreenPos();
             var baseSize = MiniHudOptions.Size(config.HudStyle, config.ShowUsage, config.HudAppearance);
             var size = baseSize * Math.Min(config.MiniHudScale * s, ImGui.GetContentRegionAvail().X / baseSize.X);
-            var motion = hudMotion.Update(snapshot, config.AnimateHudChanges, ImGui.GetIO().DeltaTime);
-            MiniHud.DrawFace(p, size, snapshot, plugin.Center.IsQuiet, false, config.MiniHudOpacity, config.HudStyle, config.ShowUsage, motion, config.HudAppearance);
+            var motion = hudMotion.Update(snapshot, config.AnimateHudChanges, ImGui.GetIO().DeltaTime, config.UsagePeriod);
+            MiniHud.DrawFace(p, size, snapshot, plugin.Center.IsQuiet, false, config.MiniHudOpacity, config.HudStyle, config.ShowUsage, motion, config.HudAppearance, config.UsagePeriod);
             ImGui.Dummy(size);
-            if (ImGui.IsItemHovered()) { ImGui.BeginTooltip(); MiniHud.DrawUsageDetails(snapshot); ImGui.EndTooltip(); }
+            if (ImGui.IsItemHovered()) { ImGui.BeginTooltip(); MiniHud.DrawUsageDetails(snapshot, config.UsagePeriod); ImGui.EndTooltip(); }
             ImGui.TextDisabled("Détails au survol · Tâches au clic");
             Toggle("Animer les changements", config.AnimateHudChanges, value => config.AnimateHudChanges = value);
             if (config.AnimateHudChanges) { ImGui.SameLine(); if (ImGui.SmallButton("Tester l’animation")) hudMotion.Highlight(); }
@@ -75,7 +75,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         }
         else if (config.Indicator == IndicatorMode.Text)
         {
-            var label = snapshot.Connected ? $"Codex {snapshot.Active} / {snapshot.Attention}!" : "Codex hors ligne";
+            var label = snapshot.Connected ? $"Codex · {snapshot.Active} en cours · {snapshot.Attention} à voir" : "Codex hors ligne";
             var size = new Vector2(Math.Min(320 * s, ImGui.GetContentRegionAvail().X), 52 * s);
             ImGui.GetWindowDrawList().AddRectFilled(p, p + size, ObsidianTheme.U(ObsidianTheme.Surface), 8 * s);
             ImGui.GetWindowDrawList().AddText(p + new Vector2(16, 17) * s, ObsidianTheme.U(ObsidianTheme.Text), label);
@@ -99,7 +99,7 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         var previewSize = MiniHudOptions.Size(config.HudStyle, config.ShowUsage, appearance)
             * Math.Min(config.MiniHudScale * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X / MiniHudOptions.Size(config.HudStyle, config.ShowUsage, appearance).X);
         MiniHud.DrawFace(ImGui.GetCursorScreenPos(), previewSize, plugin.Snapshot, plugin.Center.IsQuiet, false,
-            config.MiniHudOpacity, config.HudStyle, config.ShowUsage, appearance: appearance);
+            config.MiniHudOpacity, config.HudStyle, config.ShowUsage, appearance: appearance, usagePreference: config.UsagePeriod);
         ImGui.Dummy(previewSize);
         var mode = (int)appearance.Background;
         ImGui.SetNextItemWidth(220 * ImGuiHelpers.GlobalScale);
@@ -234,13 +234,15 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         ImGui.BeginDisabled(relay.Busy || (snapshot.Connected && relay.Phase != RelayPhase.Running));
         if (relay.Phase == RelayPhase.Running)
         {
-            if (ImGui.Button("Arrêter mon relais")) plugin.Relay.Stop();
+            if (ImGui.Button("Arrêter mon relais")) plugin.StopRelay();
         }
-        else if (ImGui.Button(relay.Busy ? "Veuillez patienter…" : snapshot.Connected ? "Relais déjà connecté" : "Lancer le relais")) plugin.Relay.Start(plugin.Config.Port, plugin.Config.RelayNodePath);
+        else if (ImGui.Button(relay.Busy ? "Veuillez patienter…" : snapshot.Connected ? "Relais déjà connecté" : "Lancer le relais")) plugin.StartRelay();
         ImGui.EndDisabled();
         ImGui.TextWrapped(snapshot.Connected && relay.Phase == RelayPhase.Ready
             ? "Le relais actuel est géré séparément. Il peut rester actif." : relay.Message);
-        ImGui.TextWrapped("Node.js 22.22.2 minimum et Codex sur ce PC. Aucun lancement automatique.");
+        Toggle("Lancer le relais automatiquement à la connexion au personnage", plugin.Config.AutoStartRelay, value => plugin.Config.AutoStartRelay = value);
+        ImGui.TextWrapped(plugin.Config.AutoStartRelay ? plugin.AutoRelay.Status : "Démarrage manuel · le relais peut être lancé avec le bouton ci-dessus.");
+        ImGui.TextWrapped("Node.js 22.22.2 minimum et Codex sur ce PC. Un relais déjà actif reste géré séparément.");
         if (ImGui.CollapsingHeader("Node.js introuvable ?"))
         {
             var node = plugin.Config.RelayNodePath;
@@ -255,19 +257,24 @@ internal sealed partial class SettingsPanel(Plugin plugin)
         if (ImGui.InputInt("Port local", ref port) && port is >= 1 and <= 65535) { plugin.Config.Port = port; plugin.Save(); }
         ImGui.EndDisabled();
         ImGui.TextDisabled("127.0.0.1 · Actualisation toutes les 2 secondes");
-        if (snapshot.Connected && !snapshot.QuestionTrackingSupported)
-            ImGui.TextWrapped("Pour repérer les questions sans pause, lancer le relais fourni avec la version 0.4.0.");
+        ImGui.TextWrapped($"Plugin chargé : {PluginVersion.Current} · Relais : {snapshot.RelayVersion ?? "version non fournie"}");
+        if (snapshot.Connected) ImGui.TextWrapped($"Suivi des questions : {(snapshot.QuestionTrackingSupported ? "disponible" : "relais à mettre à jour")} · Quota : {(snapshot.UsageTrackingSupported ? "pris en charge" : "relais à mettre à jour")}");
         ImGui.Separator();
         ObsidianTheme.Section("Quota Codex");
-        MiniHud.DrawUsageDetails(snapshot);
-        ImGui.TextWrapped("Compte connecté au CLI Codex sur ce PC. Actualisation chaque minute ; priorité à la période hebdomadaire.");
+        MiniHud.DrawUsageDetails(snapshot, plugin.Config.UsagePeriod);
+        var period = (int)plugin.Config.UsagePeriod;
+        ImGui.SetNextItemWidth(Math.Min(260 * ImGuiHelpers.GlobalScale, ImGui.GetContentRegionAvail().X));
+        if (ImGui.Combo("Période du HUD", ref period, new[] { "Semaine (par défaut)", "Période courte / 5 heures", "Période la plus limitante" }, 3))
+        { plugin.Config.UsagePeriod = (UsagePreference)period; plugin.Save(); }
+        ImGui.TextWrapped("Compte connecté au CLI Codex sur ce PC. Actualisation chaque minute. Une autre période épuisée est signalée par un astérisque rouge dans le HUD.");
         if (snapshot.Connected && !snapshot.UsageTrackingSupported && snapshot.Usage is null)
-            ImGui.TextWrapped("L’ancien relais ne fournit pas le quota. Utiliser Activer-Quota.ps1 dans le dossier bridge de cette livraison.");
+            ImGui.TextWrapped("Le relais actif est ancien. Arrêter cette instance depuis son dossier, puis lancer le relais inclus avec ce plugin.");
         else if (snapshot.CurrentUsage is null) ImGui.TextWrapped("Le relais avec quota nécessite un CLI Codex installé et connecté au compte souhaité.");
         ImGui.Separator();
         ObsidianTheme.Section("Raccourcis");
-        ImGui.TextUnformatted("/codex          Ouvrir les tâches\n/codex history  Consulter l’historique\n/codex preview  Placer les notifications\n/codex hud      Basculer Mini HUD / texte");
-        ImGui.Spacing(); ImGui.TextDisabled("Codex Monitor 0.8.0 · Aleqsd");
+        ImGui.TextUnformatted("/codex          Ouvrir les tâches\n/codex history  Consulter l’historique\n/codex preview  Placer les notifications\n/codex hud      Basculer Mini HUD / texte\n/codex dnd 30   Pause 30 minutes\n/codex dnd off  Reprendre les alertes");
+        ImGui.Spacing(); ImGui.TextDisabled($"Codex Monitor {PluginVersion.Current} · Aleqsd");
+        ImGui.TextWrapped(plugin.EmojiStatus);
         if (ImGui.CollapsingHeader("Informations techniques")) ImGui.TextWrapped(typeof(Configuration).Assembly.Location);
     }
 

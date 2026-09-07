@@ -56,6 +56,20 @@ try
     missing.Start(FreePort(), Path.Combine(root, "missing", "node.exe"));
     await Until(() => missing.State.Phase == RelayPhase.Error);
     Check(missing.State.Message.Contains("node.exe"), "Missing Node must have an actionable error.");
+    var retention = Path.Combine(root, "retention");
+    var runtimeRoot = Path.Combine(retention, "runtime"); Directory.CreateDirectory(runtimeRoot);
+    var untouched = Path.Combine(runtimeRoot, Guid.NewGuid().ToString("N")); Directory.CreateDirectory(untouched);
+    File.WriteAllText(Path.Combine(untouched, "status.json"), "{}");
+    var foreign = Path.Combine(runtimeRoot, Guid.NewGuid().ToString("N")); Directory.CreateDirectory(foreign);
+    RelayRuntimeStorage.MarkStopped(foreign); File.WriteAllText(Path.Combine(foreign, "user.txt"), "keep");
+    for (var i = 0; i < 6; i++)
+    {
+        var stopped = Path.Combine(runtimeRoot, Guid.NewGuid().ToString("N")); Directory.CreateDirectory(stopped);
+        File.WriteAllText(Path.Combine(stopped, "status.json"), "{}"); RelayRuntimeStorage.MarkStopped(stopped);
+    }
+    RelayRuntimeStorage.Prune(retention, 0);
+    Check(Directory.Exists(untouched) && Directory.Exists(foreign), "Retention must preserve unmarked and foreign runtime content.");
+    Check(Directory.GetDirectories(runtimeRoot).Length == 2, "Only confirmed stopped flat runtime folders should be removed.");
 }
 finally
 {

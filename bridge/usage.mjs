@@ -34,16 +34,19 @@ export class UsageObserver extends EventEmitter {
   constructor({ executable, codexHome, spawnProcess = spawn, now = Date.now, pollMs = 60_000, timeoutMs = 15_000 } = {}) {
     super(); Object.assign(this, { executable, codexHome, spawnProcess, now, pollMs, timeoutMs });
     this.value = null; this.child = null; this.pending = null; this.sequence = 0; this.stopped = false;
+    this.status = executable ? 'loading' : 'cliMissing';
   }
   snapshot() {
     return this.value && Math.abs(this.now() - Date.parse(this.value.fetchedAt)) <= USAGE_MAX_AGE_MS ? this.value : null;
   }
+  diagnostic() { return { status: this.value && !this.snapshot() ? 'stale' : this.status }; }
   start() {
     if (this.interval || this.stopped) return;
     this.tick(); this.interval = setInterval(() => this.tick(), this.pollMs);
   }
   tick() {
     if (this.stopped || this.pending || !this.executable) return;
+    this.status = this.value ? 'ready' : 'loading';
     if (this.child) { this.send('account/rateLimits/read'); return; }
     try {
       const child = this.spawnProcess(this.executable, ['app-server', '--listen', 'stdio://'], {
@@ -51,42 +54,47 @@ export class UsageObserver extends EventEmitter {
         env: { ...process.env, ...(this.codexHome ? { CODEX_HOME: this.codexHome } : {}) },
       });
       this.child = child; let buffer = '';
-      child.on('error', () => { if (this.child === child) this.fail(); });
-      child.on('close', () => { if (this.child === child) this.fail(); });
-      child.stdin.on('error', () => { if (this.child === child) this.fail(); });
+      child.on('error', () => { if (this.child === child) this.fail('processError'); });
+      child.on('close', () => { if (this.child === child) this.fail('processError'); });
+      child.stdin.on('error', () => { if (this.child === child) this.fail('processError'); });
       child.stdout.on('data', data => {
         if (this.child !== child) return;
         buffer += data.toString('utf8');
-        if (buffer.length > 1024 * 1024) { this.fail(); return; }
+        if (buffer.length > 1024 * 1024) { this.fail('protocolError'); return; }
         let end;
         while ((end = buffer.indexOf('\n')) >= 0) {
           const line = buffer.slice(0, end); buffer = buffer.slice(end + 1);
-          try { this.receive(JSON.parse(line)); } catch { this.fail(); return; }
+          try { this.receive(JSON.parse(line)); } catch { this.fail('protocolError'); return; }
         }
       });
-      this.send('initialize', { clientInfo: { name: 'dalamud_quota_observer', title: 'Codex Monitor', version: '0.5.0' } });
-    } catch { this.fail(); }
+      this.send('initialize', { clientInfo: { name: 'dalamud_quota_observer', title: 'Codex Monitor', version: '0.9.0' } });
+    } catch { this.fail('processError'); }
   }
   send(method, params) {
     if (!['initialize', 'account/rateLimits/read'].includes(method)) throw new Error('Unsupported quota request');
     const id = ++this.sequence;
     this.pending = { id, method };
-    this.timeout = setTimeout(() => this.fail(), this.timeoutMs);
+    this.timeout = setTimeout(() => this.fail('timeout'), this.timeoutMs);
     this.child.stdin.write(JSON.stringify({ id, method, ...(params ? { params } : {}) }) + '\n');
   }
   receive(message) {
     if (!this.pending || message.id !== this.pending.id) return;
     const { method } = this.pending; this.pending = null; clearTimeout(this.timeout);
-    if (message.error || !message.result) { this.fail(); return; }
+    if (message.error || !message.result) {
+      // Classify locally; never forward error text, account identity or credentials.
+      const auth = message.error?.code === 401 || /unauth|not logged|log in|authentication|login required|sign in|token.*expired/i.test(message.error?.message ?? '');
+      this.fail(auth ? 'authRequired' : message.error?.code === -32601 ? 'protocolError' : 'unsupported'); return;
+    }
     if (method === 'initialize') {
       this.child.stdin.write(JSON.stringify({ method: 'initialized' }) + '\n');
       this.send('account/rateLimits/read');
-    } else { this.value = normalizeUsage(message.result, this.now()); this.emit('change'); }
+    } else { this.value = normalizeUsage(message.result, this.now()); this.status = this.value ? 'ready' : 'unsupported'; this.emit('change'); }
   }
-  fail() {
+  fail(status = 'processError') {
+    this.status = status;
     clearTimeout(this.timeout); this.pending = null; this.value = null;
     const child = this.child; this.child = null;
     child?.kill(); this.emit('change');
   }
-  stop() { this.stopped = true; clearInterval(this.interval); this.interval = null; this.fail(); }
+  stop() { this.stopped = true; clearInterval(this.interval); this.interval = null; this.fail('stopped'); }
 }

@@ -86,3 +86,9 @@ Les boutons de la liste, de l’historique et des notifications utilisent un lie
 Les emojis sont dessinés en couleur à partir de Segoe UI Emoji installée sur Windows, séparément de la police choisie pour le texte. Les séquences composées restent groupées et la troncature respecte les caractères complets. La couverture dépend de la police Windows, notamment pour les symboles les plus récents ; un losange sert de repli pendant le chargement ou si le rendu échoue. Aucun fichier de police ni pack d’images n’est téléchargé ou distribué.
 
 Le Panneau fin n’a plus de barre de quota. Le texte du quota est vert au-dessus de 50 %, ambre de 20 à 50 %, rouge sous 20 %, et gris si la donnée manque. Les autres styles conservent leur forme ; leurs pourcentages suivent ces mêmes couleurs.
+
+## Ne pas déranger
+
+La cloche du mini HUD, le bouton de la fenêtre ou `/codex dnd` mettent les alertes en pause (30 minutes avec la commande sans argument). Le menu propose 15 minutes, 30 minutes, une heure ou la session. `/codex dnd off` reprend, `/codex dnd session` attend une réactivation. La pause manuelle expire à la déconnexion du personnage.
+
+Les compteurs et l’historique continuent ; notifications et sons, y compris les écoutes d’essai, attendent. La reprise conserve le délai de deux secondes au calme et les règles de combat/cinématique. Les alertes en file et les nouveaux événements sont regroupés ; les questions déjà traitées ne restent pas annoncées comme en attente.

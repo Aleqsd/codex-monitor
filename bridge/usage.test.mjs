@@ -76,3 +76,16 @@ test('absent CLI and spawn errors are non-fatal to task monitoring', t => {
   const observer = new UsageObserver({ executable: 'missing.exe', spawnProcess() { throw new Error('ENOENT'); } });
   t.after(() => observer.stop()); assert.doesNotThrow(() => observer.tick()); assert.equal(observer.snapshot(), null);
 });
+
+test('quota diagnostics distinguish missing CLI, authentication, protocol, stale data and recovery without leaking error text', t => {
+  const missing = fixture(t, { executable: null }); assert.equal(missing.observer.diagnostic().status, 'cliMissing');
+  let clock = now; const f = fixture(t, { now: () => clock });
+  f.initialize(); f.reply(null, { code: 401, message: 'private-account expired token' });
+  assert.deepEqual(f.observer.diagnostic(), { status: 'authRequired' });
+  f.initialize(); f.reply(null, { code: -32601, message: 'private protocol details' });
+  assert.equal(f.observer.diagnostic().status, 'protocolError');
+  f.initialize(); f.reply({}); assert.equal(f.observer.diagnostic().status, 'unsupported');
+  f.observer.tick(); f.reply(result); assert.equal(f.observer.diagnostic().status, 'ready');
+  clock += 120001; assert.equal(f.observer.diagnostic().status, 'stale');
+  f.observer.stop(); assert.equal(f.observer.diagnostic().status, 'stopped');
+});

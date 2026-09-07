@@ -8,12 +8,23 @@ namespace CodexMonitor;
 // Prepare is called from Framework.Update, never from Draw. Only one raster/upload worker runs.
 internal sealed class EmojiImages(ITextureProvider textures) : IDisposable
 {
-    private sealed class Entry { internal IDalamudTextureWrap? Texture; }
+    private sealed class Entry { internal IDalamudTextureWrap? Texture; internal readonly RetrySchedule Retry = new(); }
     private readonly object gate = new();
     private readonly Dictionary<string, Entry> entries = new(StringComparer.Ordinal);
     private readonly Queue<(string Text, Entry Entry)> pending = new();
     private readonly CancellationTokenSource shutdown = new();
     private bool running, disposed;
+    internal string Status
+    {
+        get
+        {
+            lock (gate)
+            {
+                var failed = entries.Values.Count(entry => entry.Texture is null && entry.Retry.Failures >= 3);
+                return failed > 0 ? $"Emojis : {failed} indisponibles · symbole de remplacement utilisé" : "Emojis Windows · préparation automatique, jusqu’à 3 tentatives";
+            }
+        }
+    }
     internal ImTextureID? Resolve(string text)
     {
         lock (gate) return entries.TryGetValue(text, out var entry) ? entry.Texture?.Handle : null;
@@ -31,7 +42,12 @@ internal sealed class EmojiImages(ITextureProvider textures) : IDisposable
             { entries[key].Texture?.Dispose(); entries.Remove(key); }
             foreach (var text in wanted)
             {
-                if (entries.ContainsKey(text)) continue;
+                if (entries.TryGetValue(text, out var existing))
+                {
+                    if (existing.Texture is null && existing.Retry.CanRetry(DateTimeOffset.UtcNow))
+                    { existing.Retry.Begin(); pending.Enqueue((text, existing)); }
+                    continue;
+                }
                 var entry = new Entry(); entries.Add(text, entry); pending.Enqueue((text, entry));
             }
             if (running || pending.Count == 0) return;
@@ -62,7 +78,7 @@ internal sealed class EmojiImages(ITextureProvider textures) : IDisposable
                 }
             }
             catch (OperationCanceledException) { }
-            catch (Exception) { /* Missing/unsupported Windows glyph: keep the visible diamond fallback. */ }
+            catch (Exception) { lock (gate) item.Entry.Retry.Fail(DateTimeOffset.UtcNow); }
             finally { texture?.Dispose(); }
         }
     }

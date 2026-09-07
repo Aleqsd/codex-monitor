@@ -67,6 +67,15 @@ public sealed class NotificationCenter(NotificationHistory history, Notification
     public bool IsQuiet { get; private set; }
     public int DeferredCount => deferred.Count;
 
+    public void BeginManualPause()
+    {
+        var pending = queue.Drain().Where(item => item.HistoryId is not null).Select(item => item.HistoryId!.Value).ToHashSet();
+        foreach (var entry in history.Entries.Where(entry => pending.Contains(entry.Id)).Reverse())
+            if (!deferred.Any(item => item.Id == entry.Id)) deferred.Add(entry);
+        if (deferred.Count > NotificationHistory.Capacity) deferred.RemoveRange(0, deferred.Count - NotificationHistory.Capacity);
+        IsQuiet = wasQuiet = true;
+    }
+
     public void Suspend(MonitorSnapshot snapshot)
     {
         previous = snapshot;

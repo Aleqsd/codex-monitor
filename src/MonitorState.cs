@@ -25,13 +25,16 @@ public sealed record MonitoredThread(string Id, string Title, string Project, st
 }
 
 public sealed record MonitorSnapshot(bool Connected, DateTimeOffset ReceivedAt,
-    IReadOnlyList<MonitoredThread> Threads, string? Error, bool QuestionTrackingSupported = false, AccountUsage? Usage = null, bool UsageTrackingSupported = false)
+    IReadOnlyList<MonitoredThread> Threads, string? Error, bool QuestionTrackingSupported = false, AccountUsage? Usage = null, bool UsageTrackingSupported = false,
+    string? RelayVersion = null, QuotaDiagnostic? QuotaDiagnostic = null)
 {
     public static MonitorSnapshot Offline(string error) => new(false, DateTimeOffset.UtcNow, [], error);
     public int Active => Threads.Count(thread => thread.State == "active");
     public int Attention => Threads.Count(thread => thread.NeedsAttention);
     public int Idle => Threads.Count(thread => thread.State == "idle");
     public UsageWindow? CurrentUsage => Connected ? Usage?.Current(DateTimeOffset.UtcNow) : null;
+    public UsageWindow? SelectedUsage(UsagePreference preference) => Connected ? Usage?.Current(DateTimeOffset.UtcNow, preference) : null;
+    public int Questions => Threads.Where(thread => thread.IsObserved).Sum(thread => thread.QuestionIds.Length);
 }
 
 public static class MonitorContract
@@ -45,7 +48,11 @@ public static class MonitorContract
         if (response.SchemaVersion != 1) throw new InvalidDataException("Version du relais incompatible.");
         if ((now - response.GeneratedAt).Duration() > TimeSpan.FromSeconds(15))
             throw new InvalidDataException("Le relais renvoie un état périmé.");
-        if (!response.Connected) return MonitorSnapshot.Offline("Codex est déconnecté du relais.");
+        var relayVersion = response.RelayVersion.ValueKind == JsonValueKind.String && Version.TryParse(response.RelayVersion.GetString(), out var parsedVersion) ? parsedVersion.ToString() : null;
+        var diagnostic = response.QuotaDiagnostic.ValueKind == JsonValueKind.Object && response.QuotaDiagnostic.TryGetProperty("status", out var status) && status.ValueKind == JsonValueKind.String
+            ? new QuotaDiagnostic(Clean(status.GetString(), "unknown", 40)) : null;
+        if (!response.Connected) return new(false, now, [], "Codex est déconnecté du relais.", response.QuestionTrackingSupported,
+            null, response.Usage.ValueKind != JsonValueKind.Undefined, relayVersion, diagnostic);
         if (response.Threads is null || response.Threads.Count > 200)
             throw new InvalidDataException("Liste de tâches invalide.");
         var ids = new HashSet<string>(StringComparer.Ordinal);
@@ -63,7 +70,8 @@ public static class MonitorContract
             threads.Add(new MonitoredThread(row.Id, Clean(row.Title, "Tâche sans titre", 1500),
                 ProjectName(row.Project), Clean(row.Model, "", 100), state, questions));
         }
-        return new MonitorSnapshot(true, now, threads.AsReadOnly(), null, response.QuestionTrackingSupported, AccountUsage.Parse(response.Usage), response.Usage.ValueKind != JsonValueKind.Undefined);
+        return new MonitorSnapshot(true, now, threads.AsReadOnly(), null, response.QuestionTrackingSupported, AccountUsage.Parse(response.Usage), response.Usage.ValueKind != JsonValueKind.Undefined,
+            relayVersion, diagnostic);
     }
 
     public static string Clean(string? value, string fallback, int maxLength)
@@ -86,6 +94,8 @@ public static class MonitorContract
         public DateTimeOffset GeneratedAt { get; set; }
         public bool QuestionTrackingSupported { get; set; }
         public JsonElement Usage { get; set; }
+        public JsonElement RelayVersion { get; set; }
+        public JsonElement QuotaDiagnostic { get; set; }
         public List<BridgeThread?>? Threads { get; set; }
     }
 

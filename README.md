@@ -22,7 +22,7 @@ https://raw.githubusercontent.com/Aleqsd/dalamud-plugins/main/repo.json
 
 Si tu utilisais une DLL de développement, désactive cette copie et retire uniquement son entrée de **Dev Plugin Locations** avant l’installation. Conserve tes fichiers de configuration et une seule copie chargée.
 
-À partir de la version **0.7.0**, ouvrir **Réglages → Connexion → Lancer le relais**. Les scripts du relais sont inclus dans le plugin ; Node.js 22.22.2 minimum et Codex restent nécessaires, ainsi qu’un CLI Codex connecté pour le quota. Le démarrage est manuel, sans fenêtre PowerShell. Un relais déjà actif peut rester lancé. [Fonctionnement et lancement séparé](bridge/README.md).
+Ouvrir **Réglages → Connexion → Lancer le relais**, ou activer **Lancer le relais automatiquement à la connexion au personnage**. Cette option est désactivée par défaut. Les scripts sont inclus ; Node.js 22.22.2 minimum et Codex restent nécessaires, ainsi qu’un CLI Codex connecté pour le quota. Le relais démarre sans console et réutilise une instance déjà active. [Fonctionnement et lancement séparé](bridge/README.md).
 
 ## Utilisation
 
@@ -44,7 +44,13 @@ Six formats, du simple texte au panneau compact, avec les tâches actives, les q
 
 Le **Panneau fin** affiche le pourcentage sans barre : vert au-dessus de 50 %, ambre de 20 à 50 %, rouge sous 20 %. Une valeur inconnue reste grise.
 
+Dans **Connexion**, choisir la semaine, la période courte ou la période la plus limitante. Le survol montre les deux périodes ; un astérisque rouge signale qu’une autre période est épuisée.
+
 ![Les six formats de mini HUD : Fil, Capsule, Balise, Liseré, Totem et Panneau fin](docs/images/mini-huds.png)
+
+La **cloche** ouvre **Ne pas déranger** : 15 min, 30 min, 1 h ou jusqu’à réactivation pendant cette session. Les tâches et l’historique restent à jour ; les notifications et sons attendent, puis un résumé paraît au retour au calme. Cliquer sur la cloche barrée reprend les alertes ; le clic droit permet de prolonger la pause. Raccourcis : `/codex dnd 30` et `/codex dnd off`.
+
+![Menu Ne pas déranger dans le mini HUD](docs/images/pause.png)
 
 ## Notifications
 

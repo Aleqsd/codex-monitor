@@ -10,6 +10,7 @@ await using var liveLaunch = args.Contains("--launch-live") ? await LiveRelayChe
 if (args.Contains("--quiet-return-checks")) { Console.WriteLine($"{QuietReturnChecks.Run()} quiet-return checks passed."); return; }
 if (args.Contains("--hud-motion-checks")) { Console.WriteLine($"{HudMotionChecks.Run()} HUD motion checks passed."); return; }
 var checks = 0;
+checks += await AutomationChecks.Run();
 checks += VisibilityChecks.Run();
 checks += QuestionDismissalChecks.Run();
 void Check(bool value, string message) { if (!value) throw new Exception(message); checks++; Console.WriteLine($"PASS {message}"); }
@@ -50,6 +51,11 @@ using (var http = new HttpClient())
     var response = await http.GetStringAsync("http://127.0.0.1:43187/api/threads");
     var snapshot = MonitorContract.Parse(response, DateTimeOffset.UtcNow);
     Check(snapshot.Connected && snapshot.Threads.Any(thread => thread.IsObserved), "Actual running relay accepted by the plugin's parser");
+    if (args.Contains("--launch-live"))
+    {
+        Check(snapshot.RelayVersion == PluginVersion.Current && snapshot.QuotaDiagnostic is not null, "Actual embedded relay provides its version and quota diagnostics");
+        Console.WriteLine($"LIVE relay {snapshot.RelayVersion}; quota diagnostic: {snapshot.QuotaDiagnostic!.Status}; value available: {snapshot.CurrentUsage is not null}");
+    }
     Console.WriteLine($"LIVE {snapshot.Active} active, {snapshot.Attention} attention, {snapshot.Idle} idle");
 }
 var queue = new NotificationQueue();

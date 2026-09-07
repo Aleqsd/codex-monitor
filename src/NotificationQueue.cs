@@ -44,6 +44,8 @@ public sealed class NotificationQueue
 
     public void Dismiss(long id) { lock (gate) items.RemoveAll(item => item.Id == id); }
     public void Clear() { lock (gate) items.Clear(); }
+    public NotificationItem[] Drain() { lock (gate) { var result = items.ToArray(); items.Clear(); return result; } }
+    public NotificationItem[] Snapshot() { lock (gate) return items.ToArray(); }
     public void RestartTimers()
     {
         lock (gate)

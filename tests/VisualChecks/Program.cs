@@ -27,6 +27,8 @@ internal static unsafe partial class Program
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--automation-config-checks")) { AutomationConfigChecks(); return; }
+        if (args.Contains("--automation-preview")) { AutomationRevision(args.Last()); return; }
         if (args.Contains("--navigation-preview")) { NavigationPreview(args.Last()); return; }
         if (args.Contains("--navigation-smoke")) { NavigationSmoke(); return; }
         if (args.Contains("--emoji-raster"))
@@ -292,6 +294,7 @@ internal static unsafe partial class Program
         screenWidth = width; screenHeight = height; overlayOnly = false; gallery = false; hudOnly = false; quietRendering = false; galleryMotion = null; appearanceOnly = false; skinOnly = false; skinScroll = 0; backdrop = 15; skinPanel = null;
         ImGui.CreateContext();
         var io = ImGui.GetIO(); io.DisplaySize = new Vector2(width, height); io.DeltaTime = 1f / 60;
+        ObsidianTheme.ResetTextCache();
         io.IniFilename = null;
         Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale = scale;
         ushort[] ranges = [0x20, 0xFF, 0x2000, 0x206F, 0];

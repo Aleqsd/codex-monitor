@@ -115,7 +115,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
                 var p = ImGui.GetWindowPos();
                 uint Color(float r, float g, float b, float opacity = 1) => ImGui.ColorConvertFloat4ToU32(new Vector4(r, g, b, alpha * opacity));
                 DrawFace(draw, p, size, scale, item, config.ToastAppearance!, alpha, preview, draggable,
-                    !preview && taskLink?.Error is not null ? "Ouverture impossible · Survoler le bouton" : null);
+                    !preview && taskLink?.ErrorFor(item.Task.Id) is not null ? "Ouverture impossible · Survoler le bouton" : null);
 
                 ImGui.SetCursorPos(new Vector2(4, 4) * scale);
                 ImGui.InvisibleButton("body", new Vector2(size.X - 37 * scale, size.Y - 36 * scale));
@@ -159,7 +159,7 @@ internal sealed class NotificationOverlay(Configuration config, Action save, Act
                 if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
                 {
                     if (!preview) pausedId = item.Id;
-                    ImGui.SetTooltip(preview || !canOpen ? "Exemple uniquement · aucune tâche à ouvrir" : taskLink?.Error ?? (summary ? "Consulter les événements dans le plugin" : "Ouvrir cette tâche dans l’application Codex"));
+                    ImGui.SetTooltip(preview || !canOpen ? "Exemple uniquement · aucune tâche à ouvrir" : taskLink?.ErrorFor(item.Task.Id) ?? (summary ? "Consulter les événements dans le plugin" : "Ouvrir cette tâche dans l’application Codex"));
                     if (canOpen && !preview) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
                 }
                 if (action) { if (summary) openMonitor(item); else _ = taskLink!.Open(item.Task.Id); }

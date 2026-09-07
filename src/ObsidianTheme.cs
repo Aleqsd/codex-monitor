@@ -98,7 +98,14 @@ internal static class ObsidianTheme
         }
         draw.AddText(font, size, position, U(color), text);
     }
+    private static readonly BoundedCache<(ImFontPtr Font, float Size, float Width, string Text), string> fitted = new(2048);
+    internal static void ResetTextCache() => fitted.Clear();
     internal static string Fit(string value, float width, float fontSize = 0)
+    {
+        var key = (ImGui.GetFont(), fontSize > 0 ? fontSize : ImGui.GetFontSize(), width, value);
+        return fitted.TryGetValue(key, out var result) ? result : fitted.Add(key, FitUncached(value, width, fontSize));
+    }
+    private static string FitUncached(string value, float width, float fontSize)
     {
         if (width <= 0) return "";
         if (Measure(value, fontSize) <= width) return value;

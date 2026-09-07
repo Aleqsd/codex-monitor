@@ -1,31 +1,37 @@
-# Validation 0.8.0
+# Validation 0.9.0
 
 Prérelease expérimentale. Vérifications locales le 7 septembre 2026 sur Windows, Dalamud 15.0.3.2, .NET SDK 10.0.400 et Node.js 22.22.2.
 
 - Compilation Release sans erreur ni avertissement.
-- 157 contrôles C# existants passent : notifications, reprise après combat, historique, questions, quota, visibilité, géométrie et animations. Le parseur lit le relais déjà actif ; aucun relais n’est démarré ni arrêté pendant ces contrôles.
-- 32 nouveaux contrôles vérifient les graphèmes Unicode, la troncature, les identifiants de tâches, le format du lien Codex, les doubles clics et l’erreur Windows.
-- Six emojis sont réellement rasterisés en couleur avec DirectWrite/Direct2D/WIC : cloche, palette, insecte, développeuse avec teinte de peau, validation et fusée. Les tests vérifient les pixels colorés ; les aperçus utilisent ces mêmes images.
-- Les clics ImGui vérifient le lien de la ligne et celui de la notification, la conservation de l’alerte, l’ouverture de l’historique pour un résumé et l’absence d’action depuis un aperçu. Le lancement Windows est simulé dans ce parcours pour ne pas ouvrir les tâches fictives.
-- Cinq seuils vérifient les couleurs du quota, y compris 20 %, 50 % et la valeur inconnue. Les cinq interactions HUD passent : style, quota, ouverture, déplacement et verrouillage.
-- Les 13 interactions de régression questions/design passent, ainsi que l’égalité des pixels des réglages après personnalisation des surfaces et la migration avec le sérialiseur Dalamud installé.
-- Quatre interactions de visibilité et quatre vérifications de migration/persistance passent. Le scénario de rendu d’une notification verte interrompue par un combat conserve sa durée complète au retour.
-- 21 nouveaux aperçus présentent les emojis, les boutons, les réglages et les couleurs du quota à largeur minimale et aux échelles 100/150/200 %. Les 32 vues de design, les huit vues de visibilité/connexion et les deux planches du README ont également été régénérées.
+- **203 contrôles C#** : pause manuelle et expiration, résumé unique, questions résolues, démarrage automatique facultatif et tentatives bornées, filtrage, cache, quota, reprise après combat, historique, visibilité et animations.
+- **32 contrôles Unicode et liens** : graphèmes, limites des titres, UUID, doubles clics et erreurs Windows. Les nouveaux contrôles vérifient aussi que l’erreur appartient à la bonne tâche et expire.
+- **22 tests Node** : protocole local, questions, quota, diagnostics sans données de compte et rotation des journaux.
+- **16 contrôles du lanceur Node** sur un service fictif : lancement/arrêt, absence de doublon, relais externe préservé, erreur de configuration et nettoyage réservé aux dossiers terminés reconnus.
+- **78 contrôles ImGui et 49 aperçus** : tâche inactive avec question dans « À voir », commandes de pause sur les six HUD, reprise sans ouverture de tâche, connexion/quota, échelles 100/150/200 %, largeur minimale et défilement de titres longs.
+- **Trois contrôles du sérialiseur Dalamud installé** pour les nouvelles préférences ; les 13 interactions questions/design et les contrôles existants de migration passent également. Les réglages conservent leurs pixels quand les surfaces fonctionnelles sont personnalisées.
+- Les clics de navigation, les cinq interactions HUD et la notification verte interrompue par un combat simulé passent. Les lancements de tâches fictives sont simulés.
+- Le relais réel 0.9.0 a été lancé temporairement sur un port libre avec ses **cinq scripts intégrés**. La lecture locale a confirmé sa version, un diagnostic de quota `ready` et une valeur disponible. L’arrêt de cette instance et la libération du port ont été confirmés. Aucun autre relais n’a été arrêté.
+
+## Performance
+
+Test hors jeu, même harnais ImGui et fenêtre 800 × 650 : 40 images de chauffe puis 120 mesures. Avec 200 titres de 1 500 caractères, le temps médian de préparation d’une image est passé d’environ **44,1 ms à 0,11 ms**, avec environ **4,7 ko d’allocations par image** au lieu de 70,5 Mo. Les lignes invisibles ne sont plus préparées et les résultats de mesure sont réutilisés. La rasterisation CPU des captures est exclue du chronométrage.
+
+Ce cas limite est accepté par le contrat du relais. Ces résultats ne mesurent pas les FPS de FF14 et ne prouvent pas un ralentissement antérieur dans une partie réelle.
 
 ## Limites
 
-Cette DLL 0.8.0 n’a pas été chargée dans FF14 pendant cette validation. Les rendus et clics ImGui sont réels, mais les services du jeu sont simulés. Le téléversement des textures par le service Dalamud et les transitions de combat réelles restent à confirmer en jeu.
+La DLL 0.9.0 n’a pas été chargée dans FF14 pendant cette validation. Les composants et clics ImGui sont réels ; les services du jeu sont simulés. Le lancement automatique après une connexion réelle au personnage, les transitions de combat et le téléversement des textures par le service Dalamud restent à confirmer en jeu.
 
-Le lien `codex://threads/<identifiant>` a été retrouvé dans l’application installée. Un lien vers la tâche de développement a été remis à Windows sans erreur ; la navigation visible dans Codex n’a pas été contrôlée par automatisation du bureau. L’association du protocole doit exister et le format interne peut évoluer.
+Les liens `codex://threads/<UUID>` utilisent l’association Windows. Le format a été retrouvé dans l’application installée, mais il n’est pas une API publique garantie. Aucun test n’a envoyé de message, lancé de travail ou répondu à une question dans Codex.
 
-La couverture des emojis dépend de Segoe UI Emoji installée sur Windows. Les séquences composées sont conservées, mais tous les symboles Unicode récents et tous les drapeaux ne sont pas garantis. Le cache est limité à 256 images, préparées en arrière-plan ; aucun fichier de police ou pack d’emojis n’est distribué. Les bindings TerraFX proviennent de Dalamud.
+Les emojis dépendent de Segoe UI Emoji installée. Le cache de 256 textures tente jusqu’à trois préparations espacées avant de conserver un symbole de remplacement. Aucun fichier de police, asset de jeu ou binaire tiers n’est redistribué. Expressway n’étant pas installée dans l’environnement de test, son repli a été vérifié, pas son rendu exact.
 
-Le relais embarqué et ses quatre ressources restent identiques à 0.7.0. Les tests de lancement/arrêt et les 20 tests Node documentés dans cette release précédente n’ont pas été répétés pour cette modification d’interface. Le plugin ne démarre aucun travail et ne répond ni n’approuve dans Codex. Le quota reste celui du compte CLI ; une donnée absente ou périmée reste inconnue.
+Les [considérations techniques Dalamud](https://dalamud.dev/plugin-development/technical-considerations/), les [restrictions de publication](https://dalamud.dev/plugin-publishing/restrictions/) et la [politique IA des soumissions officielles](https://dalamud.dev/plugin-publishing/ai-policy/) ont été relues. Cette distribution reste un dépôt personnalisé expérimental, sans soumission au catalogue officiel dans cette livraison.
 
 ## Aperçus
 
-![Couleurs du quota sur le Panneau fin sans barre](images/quota-colors.png)
+![Pause depuis le mini HUD](images/pause.png)
 
-![Règles de visibilité](images/visibility.png)
+![Connexion et lancement automatique facultatif](images/connection.png)
 
 Rendus ImGui hors jeu, avec des données fictives.

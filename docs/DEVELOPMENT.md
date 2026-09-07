@@ -2,13 +2,13 @@
 
 ## Compiler
 
-Windows, .NET SDK 10.0.400 et bibliothèques Dalamud 15 sont nécessaires. `global.json` fixe le SDK ; aucune dépendance au dossier parent n’est requise. `Build.ps1` utilise `dotnet` du PATH, ou un SDK partagé optionnel s’il existe. `-Dotnet` accepte un chemin explicite.
+Windows, .NET SDK 10.0.400 et bibliothèques Dalamud 15 sont nécessaires. `Version.props` centralise la version des assemblies ; `global.json` fixe le SDK ; aucune dépendance au dossier parent n’est requise. `Build.ps1` utilise `dotnet` du PATH, ou un SDK partagé optionnel s’il existe. `-Dotnet` accepte un chemin explicite.
 
 ```powershell
 .\Build.ps1 -DalamudHome "$env:APPDATA\XIVLauncher\addon\Hooks\15.0.3.2" -RunChecks
 ```
 
-Le contrôle de connexion réel nécessite un relais déjà actif sur le port 43187. Le script ne démarre pas un second relais réel. Les tests du lanceur utilisent un service Node fictif sur un port libre, sans accès à Codex. Le résultat se trouve dans `plugin/` : DLL (avec les quatre scripts du relais), manifeste et fichier `.deps.json`.
+Le contrôle de connexion réel nécessite un relais déjà actif sur le port 43187. Le script ne démarre pas un second relais réel. Les tests du lanceur utilisent un service Node fictif sur un port libre, sans accès à Codex. Le résultat se trouve dans `plugin/` : DLL (avec les cinq scripts du relais), manifeste et fichier `.deps.json`.
 
 Si le port 43187 est libre, le contrôle explicitement demandé `dotnet run --project tests/CoreChecks.csproj -c Release -- --launch-live` lance les vrais scripts intégrés pour la durée du test et les arrête ensuite. Il refuse un port déjà occupé. Les traces restent dans `artifacts/`, ignoré par Git.
 
@@ -38,7 +38,7 @@ Les couleurs sémantiques restent centralisées dans `ObsidianTheme`, dont le no
 
 `UnicodeText` découpe les titres par graphèmes. `EmojiText` mesure les segments de texte et les emojis avec la même largeur que le rendu. `EmojiImages` prépare en arrière-plan un cache borné à 256 textures et les libère au déchargement. La rasterisation logicielle passe par DirectWrite, Direct2D et WIC, avec [l’option de polices en couleur de Microsoft](https://learn.microsoft.com/en-us/windows/win32/directwrite/color-fonts). Les bindings TerraFX sont ceux déjà fournis par Dalamud, sans copie dans le paquet.
 
-Le code de ce dépôt, y compris les quatre scripts du relais embarqués dans la DLL, est sous licence MIT et a été développé avec l’aide substantielle de Codex. Node.js et le CLI restent des prérequis externes. Les sons intégrés sont synthétisés par le plugin. Les images de démonstration sont des rendus des composants réels avec données fictives.
+Le code de ce dépôt, y compris les cinq scripts du relais embarqués dans la DLL, est sous licence MIT et a été développé avec l’aide substantielle de Codex. Node.js et le CLI restent des prérequis externes. Les sons intégrés sont synthétisés par le plugin. Les images de démonstration sont des rendus des composants réels avec données fictives.
 
 Aucun fichier de police, asset de jeu, capture LMeter ou binaire tiers n’est distribué. Expressway est recherchée par nom de fichier dans les dossiers de polices Windows et utilisateur ; un autre emplacement peut être choisi via « Fichier local ». Segoe UI reste aussi un choix local. Si la police est absente ou ne se charge pas, Dalamud sert de repli. Le sélecteur montre ce statut.
 
@@ -51,3 +51,11 @@ Dalamud, son SDK et ses bindings sont des dépendances externes requises pour co
 Le dépôt ne contient aucun workflow GitHub Actions. Les releases sont préparées localement : tests pertinents, DLL et manifeste de même version, archive sans `runtime`, logs, configuration utilisateur, SDK ou cache. Les notes restent séparées du diagnostic local d’une installation.
 
 Le [catalogue Dalamud d’Aleqsd](https://github.com/Aleqsd/dalamud-plugins) est publié séparément par sa tâche de maintenance. Lui transmettre pour chaque nouvelle release le tag, le commit exact, le nom d’archive, les SHA256 de l’archive et de la DLL, la version et un court changelog. Une release GitHub ne met pas automatiquement le catalogue à jour. Les archives existantes restent immuables.
+
+## Pause, lancement et rendu
+
+`ManualQuietMode` reste limité à la session. La pause manuelle rejoint `QuietModeGate`, qui attend deux secondes au calme avant la reprise. `NotificationCenter.BeginManualPause` regroupe les alertes déjà en file ; les événements suivants alimentent le même résumé.
+
+`RelayAutoStart` évalue l’option après connexion et chargement, respecte un arrêt manuel et borne les tentatives. `RelayLauncher` garde les accès système sur son worker ; `RelayRuntimeStorage` ne nettoie que les dossiers plats reconnus et marqués après arrêt confirmé. Le relais limite ses journaux avec `files.mjs`.
+
+`TaskListProjection` conserve les tâches à voir malgré le filtre d’inactivité. `ImGuiListClipper` limite le rendu aux lignes visibles. Les caches de texte sont bornés avec éviction progressive ; le cache de mesure est invalidé lors du rafraîchissement des polices. Une erreur d’ouverture est liée à sa tâche pendant vingt secondes et peut être fermée ou retentée. Les emojis disposent de trois tentatives espacées et d’un diagnostic de repli.

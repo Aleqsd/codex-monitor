@@ -46,11 +46,15 @@ internal static unsafe partial class Program
                         new AccountUsage(DateTimeOffset.UtcNow, [new(48, 10080, null)]));
                     foreach (var style in Enum.GetValues<MiniHudStyle>())
                     {
+                        ImGui.PushID((int)style);
                         var index = (int)style; var p = new Vector2(24 + (index % 2) * 390, 90 + (index / 2) * 120);
                         draw.AddText(p, ObsidianTheme.U(ObsidianTheme.Muted), MiniHudOptions.Names[index]);
                         var appearance = new HudAppearance(); appearance.ApplyPreset(MonitorSkin.Obsidienne, AppearanceTarget.Hud);
                         MiniHud.DrawFace(p + new Vector2(0, 28), MiniHudOptions.Size(style, true, appearance) * 1.25f,
                             snapshot, false, false, 1, style, true, appearance: appearance);
+                        var faceSize = MiniHudOptions.Size(style, true, appearance) * 1.25f;
+                        PauseControls.Icon(plugin, p + new Vector2(faceSize.X + 5, 28 + Math.Max(0, (faceSize.Y - 30) / 2)), 30);
+                        ImGui.PopID();
                     }
                 }
                 ImGui.End(); ObsidianTheme.Pop(); ImGui.Render();

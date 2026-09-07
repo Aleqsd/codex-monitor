@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../Version.props" />
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
@@ -6,11 +7,19 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../src/BoundedCache.cs" Link="BoundedCache.cs" />
+    <Compile Include="../src/TaskListProjection.cs" Link="TaskListProjection.cs" />
+    <Compile Include="../src/ManualQuietMode.cs" Link="ManualQuietMode.cs" />
+    <Compile Include="../src/RelayAutoStart.cs" Link="RelayAutoStart.cs" />
+    <Compile Include="../src/PluginVersion.cs" Link="PluginVersion.cs" />
+    <Compile Include="../src/RetrySchedule.cs" Link="RetrySchedule.cs" />
+    <Compile Include="../src/RelayRuntimeStorage.cs" Link="RelayRuntimeStorage.cs" />
+
     <Compile Include="../src/UnicodeText.cs" Link="UnicodeText.cs" />
     <Compile Include="../src/CodexTaskLink.cs" Link="CodexTaskLink.cs" />
     <Compile Include="../src/VisibilityOptions.cs" Link="VisibilityOptions.cs" />
     <Compile Include="../src/RelayLauncher.cs" Link="RelayLauncher.cs" />
-    <EmbeddedResource Include="../bridge/bridge.mjs;../bridge/observer.mjs;../bridge/questions.mjs;../bridge/usage.mjs" LogicalName="CodexMonitor.Relay.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../bridge/bridge.mjs;../bridge/observer.mjs;../bridge/questions.mjs;../bridge/usage.mjs;../bridge/files.mjs" LogicalName="CodexMonitor.Relay.%(Filename)%(Extension)" />
     <Compile Remove="VisualChecks/**/*.cs" />
     <Compile Remove="LauncherChecks/**/*.cs" />
     <Compile Include="../src/MonitorState.cs" Link="MonitorState.cs" />

@@ -12,6 +12,7 @@ internal sealed class MainWindow : Window
     private string filter = "";
     private int stateFilter;
     private bool pendingOnly;
+    private readonly TaskListProjection projection = new();
     internal bool ShowSettings, ShowHistory;
 
     public MainWindow(Plugin plugin) : base("Codex Monitor###CodexMonitorMain")
@@ -33,7 +34,7 @@ internal sealed class MainWindow : Window
         {
             var statusLabel = !snapshot.Connected ? "Hors ligne" : plugin.Center.IsQuiet ? "Alertes en pause" : "En direct";
             var right = ImGui.CalcTextSize(statusLabel).X;
-            ObsidianTheme.DrawText(draw, "CODEX", start, ObsidianTheme.Mint, ImGui.GetFontSize());
+            ObsidianTheme.DrawText(draw, "Codex", start, ObsidianTheme.Text, ImGui.GetFontSize());
             ObsidianTheme.DrawText(draw, statusLabel, start + new Vector2(width - right, 0), snapshot.Connected ? ObsidianTheme.Muted : ObsidianTheme.Amber, ImGui.GetFontSize());
             ImGui.Dummy(new Vector2(0, 25 * scale));
         }
@@ -55,8 +56,8 @@ internal sealed class MainWindow : Window
         if (ObsidianTheme.Tab("Historique", ShowHistory)) { ShowSettings = false; ShowHistory = true; }
         ImGui.SameLine();
         if (ObsidianTheme.Tab("Réglages", ShowSettings)) { ShowSettings = true; ShowHistory = false; }
+        ImGui.SameLine(); PauseControls.Button(plugin);
         ImGui.Separator();
-        if (plugin.TaskLink.Error is { } linkError) ImGui.TextWrapped(linkError);
         if (ShowSettings) { settings.Draw(); return; }
         if (ShowHistory) { DrawHistory(); return; }
         DrawTasks(snapshot);
@@ -87,11 +88,7 @@ internal sealed class MainWindow : Window
             ImGui.TextDisabled("Vue filtrée"); ImGui.SameLine();
             if (ImGui.SmallButton("Tout afficher")) stateFilter = 0;
         }
-        var tasks = snapshot.Threads.Where(task => (plugin.Config.ShowIdle || task.State != "idle") && (plugin.Config.ShowUnobserved || task.IsObserved)
-            && (stateFilter == 0 || stateFilter == 1 && task.State == "active" || stateFilter == 2 && task.NeedsAttention || stateFilter == 3 && task.State == "idle")
-            && (filter.Length == 0 || task.Title.Contains(filter, StringComparison.OrdinalIgnoreCase) || task.Project.Contains(filter, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(task => task.NeedsAttention ? 0 : task.State == "active" ? 1 : task.State == "idle" ? 2 : 3)
-            .ThenBy(task => task.Title, StringComparer.CurrentCultureIgnoreCase).ToArray();
+        var tasks = projection.Get(snapshot, plugin.Config.ShowIdle, plugin.Config.ShowUnobserved, stateFilter, filter);
         if (ImGui.BeginChild("task-list", new Vector2(0, Math.Max(80 * s, ImGui.GetContentRegionAvail().Y - 29 * s)), false))
         {
             var appearance = plugin.Config.WindowAppearance!;
@@ -99,10 +96,20 @@ internal sealed class MainWindow : Window
             draw.AddRectFilled(p, p + extent, ObsidianTheme.U(appearance.Color));
             if (appearance.Border && appearance.Opacity > 0) draw.AddRect(p, p + extent, ObsidianTheme.U(new Vector4(0.23f, 0.23f, 0.23f, appearance.Opacity)));
             if (tasks.Length == 0) { ImGui.Spacing(); ImGui.TextDisabled("Aucune tâche dans cette vue."); }
-            foreach (var task in tasks) TaskRow(task);
+            var clipper = ImGui.ImGuiListClipper();
+            try
+            {
+                // Rows have a fixed height for the current font/appearance; popups are separate windows.
+                using var font = UiFonts.Push(appearance.Text);
+                var rowHeight = ImGui.GetFontSize() * 2 + (10 + appearance.RowSpacing) * s
+                    + (Math.Abs(appearance.Text.OffsetY) + appearance.Padding.Y) * s * 2 + ImGui.GetStyle().ItemSpacing.Y;
+                clipper.Begin(tasks.Length, rowHeight);
+                while (clipper.Step()) for (var i = clipper.DisplayStart; i < clipper.DisplayEnd; i++) TaskRow(tasks[i]);
+            }
+            finally { clipper.Destroy(); }
         }
         ImGui.EndChild();
-        ImGui.TextDisabled($"{tasks.Length} tâches affichées · Actualisation toutes les 2 s");
+        ImGui.TextDisabled($"{tasks.Length} {(tasks.Length == 1 ? "tâche affichée" : "tâches affichées")} · Actualisation toutes les 2 s");
     }
 
     private static void Summary(string label, int count, Vector4 color, float width, bool selected, Action click)
@@ -138,14 +145,17 @@ internal sealed class MainWindow : Window
         ImGui.PushID(task.Id);
         var hidden = task.HiddenQuestionIds is { Length: > 0 };
         var clickable = task.HasQuestion || hidden;
-        var openWidth = ImGui.CalcTextSize("Ouvrir").X + 20 * s;
+        var openError = plugin.TaskLink.ErrorFor(task.Id);
+        var openLabel = openError is null ? "Ouvrir" : "Réessayer";
+        var openWidth = ImGui.CalcTextSize(openLabel).X + 20 * s;
         if (ImGui.InvisibleButton("row", new Vector2(width - openWidth - 4 * s, rowHeight)) && clickable) ImGui.OpenPopup("question-actions");
         var nextRow = ImGui.GetCursorScreenPos();
         DrawTaskFace(ImGui.GetWindowDrawList(), p, width - openWidth - 4 * s, rowHeight, task, appearance, ImGui.IsItemHovered());
         if (ImGui.IsItemHovered())
         {
-            ImGui.BeginTooltip(); ImGui.PushTextWrapPos(470 * s); EmojiText.Wrapped(task.Title, 470 * s); ImGui.TextDisabled(task.Project);
-            if (task.HasQuestion) ImGui.TextColored(ObsidianTheme.Amber, "Question posée · Répondre dans Codex");
+            ImGui.BeginTooltip(); ImGui.PushTextWrapPos(470 * s); EmojiText.Wrapped(UnicodeText.Truncate(task.Title, 320), 470 * s); ImGui.TextDisabled(task.Project);
+            if (task.Title.Length > 320) ImGui.TextDisabled("Titre complet : ouvrir la tâche dans Codex");
+            if (task.HasQuestion) ImGui.TextColored(ObsidianTheme.Amber, $"{task.QuestionIds.Length} {(task.QuestionIds.Length == 1 ? "question suivie" : "questions suivies")} · Répondre dans Codex");
             if (hidden) ImGui.TextDisabled("Question masquée dans FF14");
             if (clickable) ImGui.TextDisabled("Cliquer pour gérer le signal de question");
             ImGui.PopTextWrapPos(); ImGui.EndTooltip();
@@ -153,7 +163,7 @@ internal sealed class MainWindow : Window
         if (ImGui.BeginPopup("question-actions"))
         {
             ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + 310 * s);
-            EmojiText.Wrapped(task.Title, 310 * s);
+            EmojiText.Wrapped(UnicodeText.Truncate(task.Title, 160), 310 * s);
             ImGui.TextWrapped("Ce choix concerne seulement FF14. Il ne répond pas dans Codex.");
             ImGui.Separator();
             if (task.HasQuestion && ImGui.Selectable(task.QuestionIds.Length == 1 ? "Masquer cette question" : "Masquer ces questions")) plugin.DismissQuestions(task);
@@ -163,10 +173,15 @@ internal sealed class MainWindow : Window
         }
         ImGui.SetCursorScreenPos(p + new Vector2(width - openWidth, (rowHeight - ImGui.GetFrameHeight()) / 2));
         ImGui.BeginDisabled(CodexTaskLink.Build(task.Id) is null || plugin.TaskLink.Busy);
-        if (ImGui.Button("Ouvrir##codex", new Vector2(openWidth, 0))) _ = plugin.TaskLink.Open(task.Id);
+        if (ImGui.Button(openLabel + "##codex", new Vector2(openWidth, 0))) _ = plugin.TaskLink.Open(task.Id);
         ImGui.EndDisabled();
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
-            ImGui.SetTooltip(plugin.TaskLink.Error ?? "Ouvrir cette tâche dans l’application Codex");
+            ImGui.SetTooltip(openError ?? "Ouvrir cette tâche dans l’application Codex");
+        if (ImGui.BeginPopupContextItem("open-error"))
+        {
+            if (openError is not null) { ImGui.TextWrapped(openError); if (ImGui.Selectable("Fermer ce message")) plugin.TaskLink.DismissError(task.Id); }
+            ImGui.EndPopup();
+        }
         ImGui.SetCursorScreenPos(nextRow);
         ImGui.PopID();
     }
@@ -210,6 +225,8 @@ internal sealed class MainWindow : Window
                 ImGui.BeginDisabled(CodexTaskLink.Build(entry.Task.Id) is null || plugin.TaskLink.Busy);
                 if (ImGui.SmallButton("Ouvrir dans Codex")) _ = plugin.TaskLink.Open(entry.Task.Id);
                 ImGui.EndDisabled();
+                if (plugin.TaskLink.ErrorFor(entry.Task.Id) is { } error)
+                { ImGui.TextWrapped(error); if (ImGui.SmallButton("Fermer le message")) plugin.TaskLink.DismissError(entry.Task.Id); }
                 var current = history.CurrentLabel(entry, plugin.Snapshot);
                 ImGui.TextColored(current == "À traiter" ? ObsidianTheme.Amber : ObsidianTheme.Muted, current);
                 ImGui.Separator(); ImGui.PopID();

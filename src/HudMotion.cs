@@ -16,9 +16,9 @@ public sealed class HudMotion
     public void Reset() => initialized = false;
     public void Highlight() { activeTime = attentionTime = usageTime = PulseSeconds; }
 
-    public HudMotionFrame Update(MonitorSnapshot snapshot, bool enabled, float deltaSeconds)
+    public HudMotionFrame Update(MonitorSnapshot snapshot, bool enabled, float deltaSeconds, UsagePreference preference = UsagePreference.Weekly)
     {
-        var usage = snapshot.CurrentUsage;
+        var usage = snapshot.SelectedUsage(preference);
         var next = usage is null ? (float?)null : (float)usage.RemainingPercent / 100;
         var questionCount = snapshot.Threads.Count(task => task.HasQuestion);
         var reset = !initialized || !enabled || connected != snapshot.Connected;

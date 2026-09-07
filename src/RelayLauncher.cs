@@ -9,12 +9,12 @@ using System.Text.Json;
 namespace CodexMonitor;
 
 internal enum RelayPhase { Ready, Starting, Running, External, Stopping, Error }
-internal sealed record RelayLaunchState(RelayPhase Phase, string Message)
+internal sealed record RelayLaunchState(RelayPhase Phase, string Message, bool Retryable = false)
 {
     internal bool Busy => Phase is RelayPhase.Starting or RelayPhase.Stopping;
 }
 
-/// <summary>Explicit local launch only. All I/O runs off the game's frame thread.</summary>
+/// <summary>Local launch after a click or configured opt-in. All I/O runs off the game's frame thread.</summary>
 internal sealed class RelayLauncher(string storageRoot) : IDisposable
 {
     private readonly object gate = new();
@@ -44,12 +44,13 @@ internal sealed class RelayLauncher(string storageRoot) : IDisposable
         }
     }
 
-    private void Set(RelayPhase phase, string message) => Volatile.Write(ref state, new(phase, message));
+    private void Set(RelayPhase phase, string message, bool retryable = false) => Volatile.Write(ref state, new(phase, message, retryable));
 
     private async Task Run(int port, string nodePath, CancellationTokenSource current)
     {
         Process? child = null;
         string? stopFile = null;
+        string? runtime = null;
         Task? output = null, errors = null;
         var stopped = false;
         var token = current.Token;
@@ -67,7 +68,8 @@ internal sealed class RelayLauncher(string storageRoot) : IDisposable
             var node = FindNode(nodePath);
             await ValidateNode(node, token);
             var directory = ExtractBundle(storageRoot);
-            var runtime = Path.Combine(storageRoot, "runtime", Guid.NewGuid().ToString("N"));
+            RelayRuntimeStorage.Prune(storageRoot);
+            runtime = Path.Combine(storageRoot, "runtime", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(runtime);
             stopFile = Path.Combine(runtime, "stop");
             // Recheck after preparation: another launch may have taken the port in the meantime.
@@ -91,8 +93,10 @@ internal sealed class RelayLauncher(string storageRoot) : IDisposable
             await child.WaitForExitAsync(token);
             throw new IOException("Le relais s’est arrêté. Il peut être relancé avec le bouton ci-dessus.");
         }
-        catch (OperationCanceledException) { stopped = true; Set(RelayPhase.Stopping, "Arrêt du relais lancé par ce plugin…"); }
-        catch (Exception error) { Set(RelayPhase.Error, MonitorContract.Clean(error.Message, "Lancement impossible.", 240)); }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { stopped = true; Set(RelayPhase.Stopping, "Arrêt du relais lancé par ce plugin…"); }
+        catch (OperationCanceledException) { Set(RelayPhase.Error, "Délai de démarrage dépassé · nouvelle tentative possible.", true); }
+        catch (Exception error) { Set(RelayPhase.Error, MonitorContract.Clean(error.Message, "Lancement impossible.", 240),
+            child is not null && error is IOException && error is not InvalidDataException); }
         finally
         {
             if (child is not null)
@@ -107,6 +111,12 @@ internal sealed class RelayLauncher(string storageRoot) : IDisposable
                         await child.WaitForExitAsync(deadline.Token);
                     }
                     if (output is not null && errors is not null) await Task.WhenAll(output, errors);
+                    if (child.HasExited && runtime is not null)
+                    {
+                        try { RelayRuntimeStorage.MarkStopped(runtime); }
+                        catch (IOException) { /* Retain the unmarked directory if bookkeeping fails. */ }
+                        catch (UnauthorizedAccessException) { }
+                    }
                 }
                 catch (Exception) { stopped = false; Set(RelayPhase.Error, "Arrêt non confirmé. Vérifier le relais avant de le relancer."); }
                 finally { child.Dispose(); }
@@ -114,7 +124,7 @@ internal sealed class RelayLauncher(string storageRoot) : IDisposable
             lock (gate)
             {
                 if (ReferenceEquals(session, current)) session = null;
-                if (stopped) Set(RelayPhase.Ready, "Relais arrêté. Le lancement reste manuel.");
+                if (stopped) Set(RelayPhase.Ready, "Relais arrêté. Utiliser le bouton pour le relancer.");
                 current.Dispose();
             }
         }
@@ -182,7 +192,7 @@ internal sealed class RelayLauncher(string storageRoot) : IDisposable
     internal static string ExtractBundle(string root)
     {
         var assembly = typeof(RelayLauncher).Assembly;
-        string[] names = ["bridge.mjs", "observer.mjs", "questions.mjs", "usage.mjs"];
+        string[] names = ["bridge.mjs", "observer.mjs", "questions.mjs", "usage.mjs", "files.mjs"];
         var content = names.Select(name =>
         {
             using var stream = assembly.GetManifestResourceStream("CodexMonitor.Relay." + name)

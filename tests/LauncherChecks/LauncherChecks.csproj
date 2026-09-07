@@ -5,6 +5,9 @@
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="../../src/RelayRuntimeStorage.cs" Link="RelayRuntimeStorage.cs" />
+
+    <Compile Include="../../src/UnicodeText.cs" Link="UnicodeText.cs" />
     <Compile Include="../../src/RelayLauncher.cs" Link="RelayLauncher.cs" />
     <Compile Include="../../src/MonitorState.cs" Link="MonitorState.cs" />
     <Compile Include="../../src/AccountUsage.cs" Link="AccountUsage.cs" />
@@ -12,5 +15,6 @@
     <EmbeddedResource Include="empty.mjs" LogicalName="CodexMonitor.Relay.observer.mjs" />
     <EmbeddedResource Include="empty.mjs" LogicalName="CodexMonitor.Relay.questions.mjs" />
     <EmbeddedResource Include="empty.mjs" LogicalName="CodexMonitor.Relay.usage.mjs" />
+    <EmbeddedResource Include="empty.mjs" LogicalName="CodexMonitor.Relay.files.mjs" />
   </ItemGroup>
 </Project>

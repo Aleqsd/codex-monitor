@@ -18,6 +18,7 @@ public sealed class Configuration : IPluginConfiguration
     public SurfaceAppearance? ToastAppearance { get; set; }
     public MiniHudStyle HudStyle { get; set; } = MiniHudStyle.Capsule;
     public bool ShowUsage { get; set; } = true;
+    public UsagePreference UsagePeriod { get; set; } = UsagePreference.Weekly;
     public bool AnimateHudChanges { get; set; } = true;
     public SoundOptions Sounds { get; set; } = new();
     public bool NotifyOnIdle { get; set; } = true;
@@ -26,6 +27,7 @@ public sealed class Configuration : IPluginConfiguration
     public bool OpenOnLoad { get; set; }
     public VisibilityOptions? Visibility { get; set; }
     public string RelayNodePath { get; set; } = "";
+    public bool AutoStartRelay { get; set; }
     public float NotificationSeconds { get; set; } = 7;
     public float NotificationScale { get; set; } = 1;
     public float NotificationAnchorX { get; set; } = 0.5f;
@@ -62,6 +64,7 @@ public sealed class Configuration : IPluginConfiguration
         // later explicit opt-ins, appearance, anchors and history survive normalization.
         if (Visibility is null) { Visibility = new VisibilityOptions(); OpenOnLoad = false; }
         RelayNodePath = RelayNodePath?.Trim() ?? "";
+        if (!Enum.IsDefined(UsagePeriod)) UsagePeriod = UsagePreference.Weekly;
         DismissedQuestions = QuestionDismissals.Clean(DismissedQuestions);
         Indicator = IndicatorOptions.Resolve(Indicator, ShowDtr, ShowMiniHud);
         if (!Enum.IsDefined(HudStyle)) HudStyle = MiniHudStyle.Capsule;

@@ -6,12 +6,11 @@ namespace CodexMonitor;
 internal static class EmojiText
 {
     internal static Func<string, ImTextureID?>? Resolve;
-    private static readonly Dictionary<string, UnicodeText.Run[]> Runs = new(StringComparer.Ordinal);
+    private static readonly BoundedCache<string, UnicodeText.Run[]> Runs = new(2048);
     internal static UnicodeText.Run[] Split(string text)
     {
         if (Runs.TryGetValue(text, out var found)) return found;
-        if (Runs.Count >= 512) Runs.Clear();
-        return Runs[text] = UnicodeText.Runs(text);
+        return Runs.Add(text, UnicodeText.Runs(text));
     }
     internal static float Measure(string text, float size)
     {
@@ -60,5 +59,5 @@ internal static class EmojiText
         }
         if (line.Length > 0) Label(line, width);
     }
-    internal static void Reset() { Resolve = null; Runs.Clear(); }
+    internal static void Reset() { Resolve = null; Runs.Clear(); ObsidianTheme.ResetTextCache(); }
 }

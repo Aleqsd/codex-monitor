@@ -43,6 +43,14 @@ namespace CodexMonitor
         internal MiniHud Hud { get; }
         internal NotificationSounds Sounds { get; } = new();
         internal RelayLauncher Relay { get; } = new(Path.Combine(Path.GetTempPath(), "codex-monitor-visual-unused"));
+        internal ManualQuietMode ManualQuiet { get; } = new();
+        internal RelayAutoStart AutoRelay { get; } = new();
+        internal string EmojiStatus => "Emojis prêts";
+        internal string PauseDescription => ManualQuiet.Label(DateTimeOffset.UtcNow);
+        internal void PauseAlerts(int? minutes) { if (!ManualQuiet.Enabled) Center.BeginManualPause(); ManualQuiet.Start(minutes, DateTimeOffset.UtcNow); }
+        internal void ResumeAlerts() { ManualQuiet.Stop(); Center.Update(Snapshot, false, true, true, 7, DateTimeOffset.UtcNow); }
+        internal void StartRelay() => AutoRelay.ManualStart();
+        internal void StopRelay() => AutoRelay.ManualStop();
         internal int SaveCount;
         internal int OpenCount;
         internal readonly List<Uri> OpenedLinks = new();

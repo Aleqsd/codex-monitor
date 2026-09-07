@@ -1,6 +1,6 @@
 <Project Sdk="Dalamud.NET.Sdk/15.0.0">
+  <Import Project="../Version.props" />
   <PropertyGroup>
-    <Version>0.8.0.0</Version>
     <AssemblyName>CodexMonitor</AssemblyName>
     <Author>Aleqsd</Author>
     <Name>Codex Monitor</Name>
@@ -16,6 +16,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="TerraFX.Interop.Windows"><HintPath>$(DALAMUD_HOME)/TerraFX.Interop.Windows.dll</HintPath><Private>false</Private></Reference>
-    <EmbeddedResource Include="../bridge/bridge.mjs;../bridge/observer.mjs;../bridge/questions.mjs;../bridge/usage.mjs" LogicalName="CodexMonitor.Relay.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="../bridge/bridge.mjs;../bridge/observer.mjs;../bridge/questions.mjs;../bridge/usage.mjs;../bridge/files.mjs" LogicalName="CodexMonitor.Relay.%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

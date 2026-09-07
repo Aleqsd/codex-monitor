@@ -93,7 +93,7 @@ internal static unsafe partial class Program
         using (ObsidianTheme.Palette(new HudAppearance()))
         {
             if (MiniHud.QuotaColor(null) != ObsidianTheme.Muted || MiniHud.QuotaColor(19.9) != ObsidianTheme.Red || MiniHud.QuotaColor(20) != ObsidianTheme.Amber
-                || MiniHud.QuotaColor(50) != ObsidianTheme.Amber || MiniHud.QuotaColor(51) != ObsidianTheme.Green) throw new Exception("Quota threshold colors incorrect.");
+                || MiniHud.QuotaColor(50) != ObsidianTheme.Amber || MiniHud.QuotaColor(50.9) != ObsidianTheme.Amber || MiniHud.QuotaColor(51) != ObsidianTheme.Green) throw new Exception("Quota threshold colors incorrect.");
         }
         FinishRevisionView(); Console.WriteLine("PASS task link, toast link, retained toast, summary history, inert preview, quota thresholds (native ImGui; OS launch simulated).");
     }
