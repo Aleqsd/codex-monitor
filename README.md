@@ -39,6 +39,10 @@ Le menu d’une tâche permet de l’épingler dans le HUD, de l’ajouter aux f
 
 La cloche à l’intérieur du HUD ouvre **Ne pas déranger** : 15 min, 30 min, 1 h ou la session. Les compteurs et l’historique continuent ; notifications et sons attendent. `/codex dnd 30` et `/codex dnd off` donnent le même accès.
 
+Le texte des HUD utilise **Expressway 16** avec un contour noir lorsque la police est disponible localement, notamment dans LMeter. Les petits libellés sont plus lisibles. **Réglages → HUD → Texte lisible comme LMeter** restaure ce rendu sans changer le fond ni la position. Le plugin fournit une police de secours si Expressway est absente ; aucun fichier de police n’est inclus.
+
+![Texte du mini HUD avec Expressway locale](docs/images/hud-readable.png)
+
 ## Notifications et réglages
 
 Le titre de la tâche apparaît d’abord, puis l’événement et, si disponible, un extrait de sa question. Les extraits sont facultatifs et ne sont pas enregistrés dans l’historique. Les réponses et les sorties d’outils ne sont pas transmises au jeu.

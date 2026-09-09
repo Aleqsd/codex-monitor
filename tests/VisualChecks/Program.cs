@@ -24,9 +24,12 @@ internal static unsafe partial class Program
     private static SettingsPanel? skinPanel;
     private sealed class FontPop : IDisposable { public void Dispose() => ImGui.PopFont(); }
     private static readonly Dictionary<int, ImFontPtr> SizedFonts = new();
+    private static readonly Dictionary<(MonitorFont, int), ImFontPtr> PixelFonts = new();
+    private static bool forceMissingExpressway;
 
     private static void Main(string[] args)
     {
+        if (args.Contains("--typography-preview")) { TypographyRevision(args.Last()); return; }
         if (args.Contains("--ui-preview")) { UiRevision(args.Last()); return; }
         if (args.Contains("--workflow-preview")) { WorkflowRevision(args.Last()); return; }
         if (args.Contains("--automation-config-checks")) { AutomationConfigChecks(); return; }
@@ -302,10 +305,23 @@ internal static unsafe partial class Program
         ushort[] ranges = [0x20, 0xFF, 0x2000, 0x206F, 0];
         fixed (ushort* range = ranges)
         {
-            foreach (var size in new[] {17, 12, 14, 20, 24})
+            var expressway = forceMissingExpressway ? null : LocalFontFiles.FindExpressway(Environment.GetFolderPath(Environment.SpecialFolder.Fonts),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Microsoft/Windows/Fonts"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XIVLauncher/pluginConfigs"));
+            UiFonts.ExpresswayAvailable = expressway is not null;
+            foreach (var size in new[] {17, 12, 14, 16, 20, 24})
             {
                 SizedFonts[size] = io.Fonts.AddFontFromFileTTF("C:/Windows/Fonts/segoeui.ttf", size * scale, default, range);
                 SizedFonts[size + 100] = io.Fonts.AddFontFromFileTTF("C:/Windows/Fonts/consola.ttf", size * scale, default, range);
+                SizedFonts[size + 200] = io.Fonts.AddFontFromFileTTF(expressway ?? "C:/Windows/Fonts/segoeui.ttf", size * scale, default, range);
+            }
+            PixelFonts.Clear();
+            var pixels = (from textSize in new[] {12,14,16,20,24} from hudScale in new[]{1f,1.25f,1.5f}
+                from role in HudTypography.RoleSizes select (int)HudTypography.Pixels(role,textSize/14f*hudScale*scale)).Distinct();
+            foreach(var pixel in pixels)
+            {
+                PixelFonts[(MonitorFont.Expressway,pixel)] = io.Fonts.AddFontFromFileTTF(expressway ?? "C:/Windows/Fonts/segoeui.ttf", pixel, default, range);
+                PixelFonts[(MonitorFont.Dalamud,pixel)] = io.Fonts.AddFontFromFileTTF("C:/Windows/Fonts/segoeui.ttf",pixel,default,range);
             }
             if (!io.Fonts.Build()) throw new Exception("Font atlas build failed.");
         }
@@ -317,7 +333,8 @@ internal static unsafe partial class Program
             var id = new ImTextureID((nint)(i + 1));
             io.Fonts.SetTexID(i, id); Textures[id] = new Texture(w, h, bytes);
         }
-        UiFonts.Resolver = text => { if (text is null) return null; ImGui.PushFont(SizedFonts.TryGetValue((int)text.Size + (text.Font == MonitorFont.LocalFile && text.FontFile.Length > 0 ? 100 : 0), out var font) ? font : SizedFonts[17]); return new FontPop(); };
+        UiFonts.Resolver = text => { if (text is null) return null; ImGui.PushFont(SizedFonts.TryGetValue((int)text.Size + (text.Font == MonitorFont.Expressway ? 200 : text.Font == MonitorFont.LocalFile && text.FontFile.Length > 0 ? 100 : 0), out var font) ? font : SizedFonts[17]); return new FontPop(); };
+        UiFonts.HudResolver = (text,pixels) => { if(text is null || !PixelFonts.TryGetValue((text.Font,(int)pixels),out var font))return null;ImGui.PushFont(font);return new FontPop(); };
         LoadEmojiTextures();
         plugin = new Plugin(); window = new MainWindow(plugin);
     }

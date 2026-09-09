@@ -34,6 +34,8 @@ internal sealed partial class SettingsPanel
         {
             var background = (int)config.HudAppearance!.Background;
             SettingCombo("Visibilité du fond", ref background, ["Selon le design", "Afficher", "Masquer"], value => config.HudAppearance.Background = (HudBackgroundMode)value);
+            if (ImGui.Button("Texte lisible comme LMeter")) { HudTypography.Apply(appearance.Text); plugin.Save(); }
+            ImGui.TextWrapped("Expressway 16, texte blanc et contour noir. Le fond et la position restent inchangés.");
         }
         ColorControl("Texte principal", new(appearance.Text.Red, appearance.Text.Green, appearance.Text.Blue), value => { appearance.Text.Red = value.X; appearance.Text.Green = value.Y; appearance.Text.Blue = value.Z; });
         var font = (int)appearance.Text.Font;
@@ -48,6 +50,8 @@ internal sealed partial class SettingsPanel
         SettingFloat("Taille du texte", appearance.Text.Size, 12, 24, "%.0f px", value => appearance.Text.Size = MathF.Round(value));
         var edge = (int)appearance.Text.Edge;
         SettingCombo("Lisibilité du texte", ref edge, ["Sans effet", "Ombre", "Contour sombre"], value => appearance.Text.Edge = (TextEdge)value);
+        if (appearance.Text.Edge != TextEdge.None)
+            SettingFloat("Opacité du contour ou de l’ombre", appearance.Text.EdgeOpacity * 100, 0, 100, "%.0f %%", value => appearance.Text.EdgeOpacity = value / 100);
         if (ImGui.CollapsingHeader("Disposition et détails"))
         {
             if (AppearanceScope != AppearanceTarget.Notification) Toggle("Contour du fond", appearance.Border, value => appearance.Border = value);

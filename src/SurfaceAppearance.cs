@@ -17,6 +17,7 @@ public sealed class TextAppearance
     public float Green { get; set; } = 0.94f;
     public float Blue { get; set; } = 0.91f;
     public TextEdge Edge { get; set; } = TextEdge.Shadow;
+    public float EdgeOpacity { get; set; } = .90f;
     public float OffsetX { get; set; }
     public float OffsetY { get; set; }
     internal Vector4 Color => new(Red, Green, Blue, 1);
@@ -25,6 +26,7 @@ public sealed class TextAppearance
     {
         if (!Enum.IsDefined(Font)) Font = MonitorFont.Dalamud;
         if (!Enum.IsDefined(Edge)) Edge = TextEdge.Shadow;
+        EdgeOpacity = NotificationGeometry.FiniteClamp(EdgeOpacity, 0, 1, .90f);
         FontFile ??= "";
         Size = NotificationGeometry.FiniteClamp(Size, 12, 24, 14);
         Red = NotificationGeometry.FiniteClamp(Red, 0, 1, 1);
@@ -91,6 +93,7 @@ public class SurfaceAppearance
             Opacity = target == AppearanceTarget.Window ? 0.95f : 0.70f;
             Text.Red = Text.Green = Text.Blue = 1; Text.Edge = TextEdge.Outline; Text.Font = MonitorFont.Expressway;
         }
+        if (target == AppearanceTarget.Hud) HudTypography.Apply(Text);
     }
     internal static SurfaceAppearance Legacy(AppearanceTarget target)
     { var result = new SurfaceAppearance(); result.ApplyPreset(MonitorSkin.Obsidienne, target); return result; }

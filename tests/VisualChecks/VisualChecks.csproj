@@ -43,6 +43,8 @@
     <Compile Include="../../src/AccountUsage.cs" Link="AccountUsage.cs" />
     <Compile Include="../../src/HudMotion.cs" Link="HudMotion.cs" />
     <Compile Include="../../src/HudAppearance.cs" Link="HudAppearance.cs" />
+    <Compile Include="../../src/HudTypography.cs" Link="HudTypography.cs" />
+    <Compile Include="../../src/LocalFontFiles.cs" Link="LocalFontFiles.cs" />
     <Compile Include="../../src/SurfaceAppearance.cs" Link="SurfaceAppearance.cs" />
     <Compile Include="../../src/NotificationCenter.cs" Link="NotificationCenter.cs" />
     <Compile Include="../../src/NotificationQueue.cs" Link="NotificationQueue.cs" />

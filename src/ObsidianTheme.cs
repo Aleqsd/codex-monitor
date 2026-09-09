@@ -89,8 +89,8 @@ internal static class ObsidianTheme
     internal static float Measure(string text, float fontSize = 0) => EmojiText.Measure(text, fontSize > 0 ? fontSize : ImGui.GetFontSize());
     internal static void DrawPlainText(ImDrawListPtr draw, string text, Vector2 position, Vector4 color, float size, TextAppearance style)
     {
-        var font = ImGui.GetFont(); var edge = new Vector4(0, 0, 0, color.W * 0.90f);
-        var pixel = Math.Max(1, size / 17);
+        var font = ImGui.GetFont(); var edge = new Vector4(0, 0, 0, color.W * style.EdgeOpacity);
+        var pixel = Math.Max(1, MathF.Round(size / 17));
         if (style.Edge == TextEdge.Shadow) draw.AddText(font, size, position + new Vector2(pixel), U(edge), text);
         else if (style.Edge == TextEdge.Outline)
         {

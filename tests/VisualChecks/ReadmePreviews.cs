@@ -10,7 +10,7 @@ internal static unsafe partial class Program
         Directory.CreateDirectory(output);
         foreach (var notifications in new[] { false, true })
         {
-            Initialize(notifications ? 680 : 940, notifications ? 850 : 640, 1);
+            Initialize(notifications ? 680 : 1080, notifications ? 850 : 720, 1);
             for (var frame = 0; frame < 3; frame++)
             {
                 ImGui.NewFrame(); ObsidianTheme.Push(ObsidianTheme.Chrome);
@@ -48,7 +48,7 @@ internal static unsafe partial class Program
                     foreach (var style in Enum.GetValues<MiniHudStyle>().Where(style=>(int)style<6))
                     {
                         ImGui.PushID((int)style);
-                        var index = (int)style; var p = new Vector2(24 + (index % 2) * 460, 90 + (index / 2) * 145);
+                        var index = (int)style; var p = new Vector2(24 + (index % 2) * 520, 90 + (index / 2) * 170);
                         draw.AddText(p, ObsidianTheme.U(ObsidianTheme.Muted), MiniHudOptions.Names[index]);
                         var appearance = new HudAppearance(); appearance.ApplyPreset(MonitorSkin.Obsidienne, AppearanceTarget.Hud);
                         MiniHud.DrawFace(p + new Vector2(0, 28), MiniHudOptions.Size(style, true, appearance) * 1.25f,
@@ -61,7 +61,7 @@ internal static unsafe partial class Program
             Render(Path.Combine(output, notifications ? "notifications.ppm" : "mini-huds.ppm"));
             FinishRevisionView();
         }
-        Initialize(720,520,1);UiFixture();
+        Initialize(780,580,1);UiFixture();
         for(var frame=0;frame<3;frame++)
         {
             ImGui.NewFrame();ObsidianTheme.Push(ObsidianTheme.Chrome);

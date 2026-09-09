@@ -17,6 +17,7 @@ public sealed class Configuration : IPluginConfiguration
     public float MiniHudScale { get; set; } = 1;
     public float MiniHudOpacity { get; set; } = 0.94f;
     public HudAppearance? HudAppearance { get; set; }
+    public int HudTypographyVersion { get; set; }
     public SurfaceAppearance? WindowAppearance { get; set; }
     public SurfaceAppearance? ToastAppearance { get; set; }
     public MiniHudStyle HudStyle { get; set; } = MiniHudStyle.Capsule;
@@ -83,6 +84,7 @@ public sealed class Configuration : IPluginConfiguration
         MiniHudOpacity = NotificationGeometry.FiniteClamp(MiniHudOpacity, 0.35f, 1, 0.94f);
         HudAppearance ??= new HudAppearance { Opacity = MiniHudOpacity };
         HudAppearance.Normalize();
+        if (HudTypographyVersion < 1) { HudTypography.Upgrade(HudAppearance.Text); HudTypographyVersion = 1; }
         WindowAppearance ??= SurfaceAppearance.Legacy(AppearanceTarget.Window);
         ToastAppearance ??= SurfaceAppearance.Legacy(AppearanceTarget.Notification);
         WindowAppearance.Normalize(); ToastAppearance.Normalize();

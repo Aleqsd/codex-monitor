@@ -19,8 +19,11 @@ namespace CodexMonitor
     internal static class UiFonts
     {
         internal static Func<TextAppearance?, IDisposable?>? Resolver;
+        internal static Func<TextAppearance?, float, IDisposable?>? HudResolver;
         internal static IDisposable? Push(TextAppearance? text) => Resolver?.Invoke(text);
-        internal static string Status(TextAppearance text) => text.Font is MonitorFont.Expressway or MonitorFont.LocalFile ? "Police absente · repli Dalamud" : "Police prête";
+        internal static IDisposable? PushHud(TextAppearance? text, float pixels) => HudResolver?.Invoke(text, pixels) ?? Push(text);
+        internal static bool ExpresswayAvailable;
+        internal static string Status(TextAppearance text) => text.Font == MonitorFont.Expressway ? ExpresswayAvailable ? "Expressway locale prête" : "Police absente · repli Dalamud" : "Police prête";
     }
     internal sealed class Plugin
     {

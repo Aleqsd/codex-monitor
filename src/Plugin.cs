@@ -37,6 +37,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly EmojiImages emojis;
     private DateTimeOffset nextEmojiRefresh;
     private bool fontsDirty;
+    private float fontGlobalScale;
     private bool manuallyOpened;
     private bool pendingOpen;
     private bool wasLoggedIn;
@@ -63,10 +64,11 @@ public sealed class Plugin : IDalamudPlugin
         PluginInterface.SavePluginConfig(Config);
         ApplyVisibility();
         questionDismissals = new QuestionDismissals(Config.DismissedQuestions);
-        UiFonts.Initialize(PluginInterface.UiBuilder.FontAtlas);
+        UiFonts.Initialize(PluginInterface.UiBuilder.FontAtlas, Directory.GetParent(PluginInterface.GetPluginConfigDirectory())!.FullName);
         emojis = new EmojiImages(Textures);
         EmojiText.Resolve = emojis.Resolve;
-        UiFonts.Refresh(Config.WindowAppearance!.Text, Config.HudAppearance!.Text, Config.ToastAppearance!.Text);
+        UiFonts.Refresh(Config.WindowAppearance!.Text, Config.HudAppearance!.Text, Config.ToastAppearance!.Text, Config.MiniHudScale);
+        fontGlobalScale = Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale;
         History = new NotificationHistory(Config.NotificationHistory);
         NotificationUi = new NotificationOverlay(Config, Save, OnNotificationClick, TaskLink);
         Center = new NotificationCenter(History, NotificationUi.Queue, state => Sounds.Play(state, Config.Sounds));
@@ -203,10 +205,11 @@ public sealed class Plugin : IDalamudPlugin
 
     private void Update(IFramework framework)
     {
-        if (fontsDirty)
+        if (fontsDirty || fontGlobalScale != Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale)
         {
             fontsDirty = false;
-            UiFonts.Refresh(Config.WindowAppearance!.Text, Config.HudAppearance!.Text, Config.ToastAppearance!.Text);
+            UiFonts.Refresh(Config.WindowAppearance!.Text, Config.HudAppearance!.Text, Config.ToastAppearance!.Text, Config.MiniHudScale);
+            fontGlobalScale = Dalamud.Interface.Utility.ImGuiHelpers.GlobalScale;
             ObsidianTheme.ResetTextCache();
         }
         var game = CurrentGame();

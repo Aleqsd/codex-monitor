@@ -1,30 +1,22 @@
-# Validation 0.11.1
+# Validation 0.11.2
 
-Vérifications locales le 7 septembre 2026 : Windows, Dalamud 15.0.3.2 et .NET SDK 10.0.400.
+Vérifications locales le 9 septembre 2026 : Windows, Dalamud 15.0.3.3 et .NET SDK 10.0.400.
 
 - Compilation sans avertissement ni erreur.
-- **796 contrôles ImGui et 127 rendus** : neuf HUD à 100/150/200 %, ouverture des réglages depuis le fond, les compteurs, le quota et la tâche épinglée ; aperçu des tâches facultatif ; pause et reprise depuis la cloche intégrée.
-- La cloche reste dans la surface et sans chevauchement avec les compteurs, avec ou sans quota, marges, décalage du texte et taille personnalisée. Le glisser en mode placement et le clic droit pour verrouiller restent fonctionnels.
-- Migration avec Newtonsoft.Json fourni par Dalamud : une configuration 0.11.0 contenant `HudQuickPeek: true` revient aux réglages au clic, sans changer son format ni son ancre. Le choix facultatif de l’aperçu se sauvegarde ensuite normalement.
-- Navigation, ouvertures explicites de liens simulées, états inconnus, bords d’écran, historique sans extraits et comparaison pixel à pixel des réglages fixes restent couverts. Les trois planches du README utilisent les composants natifs et des données fictives.
+- **448 contrôles typographiques et 55 rendus** : Expressway locale réellement chargée, absence de police forcée, neuf formats à 100/150/200 %, quota, cloche intégrée, clic vers les réglages, détection du fichier et migration avec Newtonsoft.Json fourni par Dalamud.
+- **796 contrôles ImGui et 127 rendus** : navigation, pause/reprise, personnalisation, déplacement, bords d’écran, compteurs, aperçu facultatif et comparaison pixel à pixel des réglages fixes.
+- Trois planches du README et un aperçu rapproché sont produits par les composants natifs avec des données fictives. Le fichier Expressway utilisé dans les contrôles reste sur le poste ; aucun fichier de police n’est distribué.
 
-Les modules de données, Unicode, notifications et lancement du relais ne changent pas. Leur référence 0.11.0 reste : 260 contrôles C#, 25 tests Node, 32 contrôles Unicode/liens et 16 contrôles du lanceur. Ces campagnes métier n’ont pas été relancées pour ce correctif visuel. Le relais embarqué 0.11.0 est identique octet pour octet ; aucun jeu ni relais actif n’a été manipulé pendant la correction.
+Une configuration standard 0.11.1 est migrée vers Expressway 16, texte blanc et contour noir 128/255. Le format, le fond noir à 50 %, l’échelle 1,25, l’ancre et l’opacité du contenu restent identiques. Les polices personnalisées et les choix effectués après migration sont conservés.
+
+Les modules de données et les cinq scripts du relais 0.11.0 restent inchangés. Les campagnes métier de la 0.11.0 (260 contrôles C#, 25 tests Node, 32 Unicode/liens et 16 contrôles du lanceur) sont une référence précédente, sans nouvelle exécution revendiquée pour ce correctif. Aucun jeu ni relais actif n’a été manipulé.
 
 ## Limites
 
+L’utilisateur a confirmé le fonctionnement en jeu de la **0.11.1** le 9 septembre. La DLL **0.11.2** n’a pas encore été chargée dans FF14 pendant cette validation. Le harnais utilise ImGui et les vrais fichiers de police locaux ; les services hôtes, l’atlas géré par Dalamud et les lancements de liens sont simulés. Le rendu final en jeu et le rechargement des polices par Dalamud restent à confirmer sur cette version.
 
-Cette DLL n’a pas été chargée dans FF14 pendant la validation. Le dessin et les clics ImGui sont réels ; les services du jeu et les lancements de liens fictifs sont simulés. Le rendu dans une session, les transitions de combat et les textures chargées par Dalamud restent à vérifier en jeu.
+Le relais est expérimental et utilise un protocole local interne de Codex. Les limites de fraîcheur, de lecture et d’extraits restent celles décrites dans la documentation du relais. La préparation officielle 0.11.1 et ses releases restent distinctes de ce correctif.
 
-Le point bleu reflète `hasUnreadTurn`, sans acquittement propre au plugin. Il indique une réponse non lue, pas que l’objectif entier est accompli. Une question peut rester à traiter pendant que la tâche continue. Le protocole local et le lien `codex://threads/<UUID>` sont internes et peuvent évoluer.
+![HUD Expressway](images/hud-readable.png)
 
-Les extraits se limitent aux titres des questions structurées, 240 caractères maximum, et restent dans la mémoire locale. Ni réponses, ni instructions, ni sorties d’outils ne sont exportées. L’historique et la configuration ne stockent pas les extraits. Les captures et fixtures publiques sont fictives ; les traces et données réelles restent hors de la livraison.
-
-Expressway n’est pas installée dans l’environnement de test : son repli est validé. Aucun fichier de police, asset du jeu ou binaire tiers n’est redistribué.
-
-Les [considérations techniques](https://dalamud.dev/plugin-development/technical-considerations/), les [restrictions](https://dalamud.dev/plugin-publishing/restrictions/) et la [politique IA de Dalamud](https://dalamud.dev/plugin-publishing/ai-policy/) ont été relues. Cette livraison ne soumet rien au catalogue officiel.
-
-![Nouveaux mini HUD](images/new-huds.png)
-
-![Aperçu des réponses non lues](images/peek.png)
-
-Rendus ImGui hors jeu, données fictives.
+Rendu natif ImGui hors jeu, données fictives.

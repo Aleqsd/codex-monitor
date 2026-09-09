@@ -28,8 +28,8 @@ internal sealed partial class MiniHud(Plugin plugin, Action openSettings)
         var s = size.Y / MiniHudOptions.Size(style, showUsage, appearance).Y * ((appearance?.Text.Size ?? 14) / 14);
         var font = ImGui.GetFont();
         var usage = snapshot.SelectedUsage(usagePreference);
-        var muted = ObsidianTheme.Muted;
-        var activeColor = snapshot.Connected && snapshot.Active > 0 ? ObsidianTheme.Active : muted;
+        var muted = new Vector4(.76f, .78f, .77f, 1);
+        var activeColor = snapshot.Connected && snapshot.Active > 0 ? ObsidianTheme.Text : muted;
         var quotaColor = QuotaColor(usage?.RemainingPercent);
         var otherExhausted = snapshot.Connected && snapshot.Usage?.OtherExhausted(DateTimeOffset.UtcNow, usage) == true;
         if (otherExhausted) quotaColor = ObsidianTheme.Red;
@@ -61,11 +61,18 @@ internal sealed partial class MiniHud(Plugin plugin, Action openSettings)
             Text(ready + (label ? snapshot.Ready == 1 ? " prête" : " prêtes" : ""), x+10, y, readyColor, label ? 12 : 14);
             Hit(HudTarget.Ready,x-2,y-3,label ? 76 : 38,23);
         }
-        float Width(string text, float fs = 14) => ImGui.CalcTextSize(text).X * fs / ImGui.GetFontSize();
+        float FontPixels(float fs) => HudTypography.Pixels(fs, s);
+        float Width(string text, float fs = 14)
+        { using var font = UiFonts.PushHud(appearance?.Text, FontPixels(fs)); return ObsidianTheme.Measure(text, FontPixels(fs)) / s; }
+        string Fit(string text, float width, float fs)
+        { using var font = UiFonts.PushHud(appearance?.Text, FontPixels(fs)); return ObsidianTheme.Fit(text, width*s, FontPixels(fs)); }
         void Text(string text, float x, float y, Vector4 color, float fs = 14)
         {
             color.W *= opacity;
-            ObsidianTheme.DrawText(draw, text, At(x, y) + (appearance?.Text.Offset ?? Vector2.Zero) * s, color, fs * s, appearance?.Text);
+            using var font = UiFonts.PushHud(appearance?.Text, FontPixels(fs));
+            var position = At(x, y) + (appearance?.Text.Offset ?? Vector2.Zero) * s;
+            position = new(MathF.Round(position.X), MathF.Round(position.Y));
+            ObsidianTheme.DrawText(draw, text, position, color, FontPixels(fs), appearance?.Text);
         }
         void Center(string text, float x, float y, Vector4 color, float fs = 14) => Text(text, x - Width(text, fs) / 2, y, color, fs);
         void Animated(string text, float x, float y, Vector4 color, float pulse, float fs = 14) =>
@@ -118,10 +125,9 @@ internal sealed partial class MiniHud(Plugin plugin, Action openSettings)
                 Text(paused,baseSize.X-38-Width(paused,11),10,quiet ? ObsidianTheme.Amber : muted,11);
                 var pinned = snapshot.Connected ? snapshot.Threads.FirstOrDefault(t=>t.Id==pinnedTaskId) : null;
                 var pinnedTitle = pinned?.Title ?? (!snapshot.Connected ? "Relais déconnecté" : pinnedTaskId is null ? "Choisir une tâche à épingler" : "Tâche hors des projets suivis ou indisponible");
-                var titleFont = 15*s;
-                Text(ObsidianTheme.Fit(pinnedTitle,(baseSize.X-24)*s,titleFont),12,33,ObsidianTheme.Text,15);
+                Text(Fit(pinnedTitle,baseSize.X-24,15),12,33,ObsidianTheme.Text,15);
                 Hit(HudTarget.Pinned,8,29,334,59);
-                Text(ObsidianTheme.Fit(pinned?.ModelLabel ?? "Depuis le menu d’une tâche ou les réglages HUD",(baseSize.X-24)*s,11*s),12,54,muted,11);
+                Text(Fit(pinned?.ModelLabel ?? "Depuis le menu d’une tâche ou les réglages HUD",baseSize.X-24,11),12,54,muted,11);
                 Text(pinned?.Label ?? "",12,73,pinned is null ? muted : ObsidianTheme.TaskState(pinned),12);
                 if(pinned?.InterventionLabel is { } intervention) Text(intervention,baseSize.X-12-Width(intervention,12),73,ObsidianTheme.Amber,12);
                 Text(active+" en cours",12,96,activeColor,11); Hit(HudTarget.Active,8,91,94,21);

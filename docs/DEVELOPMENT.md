@@ -75,7 +75,7 @@ Le point bleu a été confirmé dans le flux local de l’application installée
 
 `pendingQuestionPreviews` exporte seulement les titres des questions structurées encore en attente, en mémoire et avec une limite de 240 caractères. La projection garde les identités nécessaires aux patches, sans corps de message ni réponse. Le contrat C# vérifie l’identité et la fraîcheur avant affichage. `NotificationHistory` retire les extraits à l’écriture et au chargement ; la file visible actualise les extraits après une réponse partielle.
 
-Pour cette interface, lancer `--ui-preview artifacts/ui-0111` avec le harnais natif. Ce parcours remplace les anciens tests UI fondés sur les coordonnées des onglets de la 0.10.0. Les contrôles métier restent dans CoreChecks et les tests Node.
+Pour cette interface, lancer `--ui-preview artifacts/ui-0112` avec le harnais natif. Ce parcours remplace les anciens tests UI fondés sur les coordonnées des onglets de la 0.10.0. Les contrôles métier restent dans CoreChecks et les tests Node.
 
 
 ## Clic et pause intégrée (0.11.1)
@@ -83,3 +83,14 @@ Pour cette interface, lancer `--ui-preview artifacts/ui-0111` avec le harnais na
 `HudClickAction` choisit entre réglages (défaut) et aperçu. L’ancien champ JSON `HudQuickPeek` de la 0.11.0 est ignoré pour rétablir les réglages lors de la migration ; format, ancre et autres préférences sont conservés. Les choix explicites effectués ensuite sont sauvegardés.
 
 La cloche est dessinée par `MiniHud.DrawFace`, y compris dans les aperçus. `MiniHudOptions` réserve sa place dans la surface ; la zone `HudTarget.Pause` partage le bouton ImGui du HUD et ne propage pas le clic aux réglages. Le mode placement utilise toujours la surface entière. Les cinq scripts du relais 0.11.0 restent inchangés.
+
+
+## Typographie HUD (0.11.2)
+
+`LocalFontFiles` cherche Expressway dans les polices Windows, celles de l’utilisateur puis dans `LMeter/Fonts/Expressway.ttf` sous le répertoire partagé des configurations Dalamud. Ce fichier reste local et n’est ni copié ni distribué. La préparation des polices est hors du dessin ; le sélecteur conserve les options Dalamud, Expressway, Segoe UI et fichier local, avec un repli explicite.
+
+`HudTypographyVersion` applique une seule fois la migration de la typographie standard du HUD vers Expressway 16 et le contour noir à 128/255. Les polices personnalisées, couleurs personnalisées, fond, ancre, format et préférences fonctionnelles sont conservés. Le bouton « Texte lisible comme LMeter » applique uniquement les réglages du texte.
+
+Le HUD prépare quatre tailles de glyphes arrondies en pixels selon sa taille et l’échelle Dalamud. `FontScaleMode.SkipHandling` réserve cette gestion d’échelle au HUD ; mesure et dessin choisissent le même handle. Les petits libellés ont un minimum de 13 unités logiques. Les handles suivent les changements de préférences et d’échelle globale ; les anciens sont libérés. Les trois handles des autres surfaces conservent la gestion d’échelle Dalamud. Un aperçu réduit pour un écran trop étroit peut utiliser le handle de repli tant qu’une taille exacte n’est pas disponible.
+
+`--typography-preview artifacts/typography-0112` couvre la migration réelle, la détection locale et les neuf formats à trois échelles, avec Expressway puis son absence forcée. Le harnais dessine les fichiers de police locaux avec ImGui ; il ne remplace pas un essai du gestionnaire d’atlas Dalamud pendant une session de jeu.
